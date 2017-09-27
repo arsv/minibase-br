@@ -1,0 +1,10 @@
+initrd
+initrd.img
+bootfs
+bootfs.img
+rootfs
+rootfs.img
+
+whole.img
+
+!dropin/*
