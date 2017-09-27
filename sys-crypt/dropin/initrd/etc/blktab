@@ -1,0 +1,3 @@
+mbr 11223344
+part 1 boot -
+part 2 root 1

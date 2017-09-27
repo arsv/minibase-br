@@ -1,0 +1,11 @@
+initrd
+initrd.img
+dekeys.nkw
+bootfs
+bootfs.img
+rootfs
+rootfs.img
+
+whole.img
+
+!dropin/*
