@@ -5,6 +5,7 @@ bootfs
 bootfs.img
 rootfs
 rootfs.img
+rootfs.enc
 
 whole.img
 
