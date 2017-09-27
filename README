@@ -1,0 +1,161 @@
+This repository contains build scripts and filesystem skeletons for
+bootable minibase images. There are two of them currently, encrypted
+and non-encrypted, both based on Buildroot. When built, the images
+will contain just enough to run Weston and (if the hardware is present)
+connect to a wifi network.
+
+The images can be used with qemu, or with an Intel-based laptop capable
+of booting in BIOS mode. The limitations are because of pre-configured
+kernel, initrd scripts, and partition table.
+
+WARNING: buildroot takes a lot of time and about 6GB of space to build.
+
+
+System contents
+~~~~~~~~~~~~~~~
+The resulting images contain
+	
+	* ~3MB kernel
+	* ~3MB of kernel modules
+	* ~400KB of minibase tools
+	* ~1MB musl+busybox
+	* about 30MB of weston and its dependencies
+	* about 20MB of free space
+
+Ignoring root shells (which shouldn't be there in a real system),
+the `weston` executable is the first one to load libc during the boot.
+
+
+Pre-built images
+~~~~~~~~~~~~~~~~
+Check "images" branch, and skip to Booting with qemu below.
+
+
+Prerequisites
+~~~~~~~~~~~~~
+The host system need a usable GNU toolchain:
+
+	* common POSIX tools
+	* binutils, gcc, make
+	* wget to download the sources
+
+Also must be available:
+
+	* mtools
+	* syslinux, with files in /usr/share/syslinux
+	  (fix the scripts if the files are in another location)
+
+Buildroot could be used to build both, but most system have them as packages
+anyway so why bother.
+
+
+How to build the images
+~~~~~~~~~~~~~~~~~~~~~~~
+Download https://buildroot.org/downloads/buildroot-2017.08.tar.bz2,
+unpack it and rename the directory into ./buildroot.
+
+# If the host system runs glibc-2.26:
+#
+#	cp brvendor/package/flex/0002*.patch buildroot/package/flex/
+#
+# otherwise the build will fail.
+
+Clone (or download and unpack) https://github.com/arsv/minibase to ./minibase.
+Build minibase:
+
+	cd minibase
+	./configure
+	make
+	make install    # this will install into ./out
+
+Build the rest of the buildroot system:
+
+	cd buildroot
+	make BR2_EXTERNAL=../brvendor minibase_defconfig
+	make            # this will take lots of time
+
+Assemble plaintext image:
+
+	cd sys-plain
+	make
+
+Assemble encrypted image:
+
+	cd sys-crypt
+	make
+
+The first sys-crypt build will generate image encryptions keys which will
+then be re-used unless removed manually. The tool will ask for passphrase
+when generating the keys, and then once again to unlock the keys when
+encrypting the image. Any subsequent run will only ask for passphrase to
+unlock the keys.
+
+
+System structure
+~~~~~~~~~~~~~~~~
+At the end of the build, the complete contents of initrd, bootfs and rootfs
+will be in respective directories. Feel free to investigate them.
+
+The kernel invokes initrd/init on startup. That script in turn execs into
+rootfs/sbin/system/start which is a script as well.
+
+The system is assembled by merging the contents of minibase/out,
+buildroot/output/target, and dropin/. The first two provide executables while
+the files from dropin determine system configuration.
+
+
+Booting with qemu
+~~~~~~~~~~~~~~~~~
+Run xqemu.sh in respective directories:
+
+	cd sys-plain
+	./xqemu.sh
+
+The scripts will attempt to run qemu with -enable-kvm. Remove that option
+if KVM is not available, but be prepared for nearly unusable system. Weston
+is *really* slow. Without KVM, it may take more than 5s to start and it will
+look like the system is hung up. It's not, it's just Weston grinding its gears.
+
+
+Booting with real hardware
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+Write the image onto usb stick:
+
+	cd sys-crypt
+	dd if=whole.img of=/dev/sdb   # make sure it's the right device
+
+and try to persuade hw's firmware to boot from that. The image is a regular
+BIOS/MBR boot image with two partitions and syslinux for bootloader.
+
+
+Getting around the system
+~~~~~~~~~~~~~~~~~~~~~~~~~
+The system is configured to be usable in qemu. VT switch combos are C-Fx,
+not C-A-Fx as usual.
+
+The system should boot into Weston running on VT3. Tap C-F4 to switch to
+another Weston instance (starting it if necessary) on VT4. Tap C-F2 for a
+root console. There's another root console on ttyS0 (serial). In qemu,
+press C-A-3 to access it.
+
+Use `svctl` to query top-level supervisor:
+
+	svctl                  # process list
+	svctl -t udevmod       # stop udevmod
+	svctl -s udevmod       # start it again
+	svctl -P               # poweroff
+
+Use `vtctl` to control vtmux:
+
+	vtctl 4                # switch to VT4
+
+Use `wictl` to scan/connect to network:
+
+	wictl -s               # scan wifi
+	wictl -p blackhole     # ask passphrase and connect to a named AP
+	wictl -e               # bring up ethernet
+
+(the above only works if there are any wifi devices available)
+
+The interactive shell is busybox sh, and there's a bunch of common commands
+provided by busybox as well.
