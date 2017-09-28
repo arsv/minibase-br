@@ -17,6 +17,7 @@ The resulting images contain
 	
 	* ~3MB kernel
 	* ~3MB of kernel modules
+	* ~500KB of firmware for iwlwifi
 	* ~400KB of minibase tools
 	* ~1MB musl+busybox
 	* about 30MB of weston and its dependencies
