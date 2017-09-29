@@ -160,3 +160,5 @@ Use `wictl` to scan/connect to network:
 
 The interactive shell is busybox sh, and there's a bunch of common commands
 provided by busybox as well.
+
+Tap C-Esc to bring up control vt. Shift-R to reboot, Shift-P to poweroff etc.
