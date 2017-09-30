@@ -1,9 +1,9 @@
+C-Esc: vtswitch 0
 C-F1: vtswitch 1
 C-F2: vtswitch 2
 C-F3: vtswitch 3
 C-F4: vtswitch 4
 C-F5: vtswitch 5
-C-Esc: greeter
 
 hold C-F12: shutdown
 long Lid: lidsleep
