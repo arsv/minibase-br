@@ -11,4 +11,4 @@ cp -at initrd/ ../minibase/out/boot/bin
 # not needed for plaintext images
 rm initrd/bin/passblk
 
-(cd initrd && find . | cpio -oLH newc) | gzip -c > initrd.img
+(cd initrd && find . | cpio -oH newc) | gzip -c > initrd.img

@@ -24,4 +24,4 @@ cp -at initrd/lib/modules/$kver $broot/lib/modules/$kver/modules.dep
 mkdir -p initrd/etc
 cp dekeys.nkw initrd/etc/dekeys
 
-(cd initrd && find . | cpio -oLH newc) | gzip -c > initrd.img
+(cd initrd && find . | cpio -oH newc) | gzip -c > initrd.img
