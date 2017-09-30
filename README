@@ -24,7 +24,7 @@ The resulting images contain
 	* about 20MB of free space
 
 Ignoring root shells (which shouldn't be there in a real system),
-the `weston` executable is the first one to load libc during the boot.
+the `weston` executable is the first one to load libc during boot.
 
 
 Pre-built images
