@@ -1,23 +1,23 @@
-#!/bin/msh
+#!/sbin/msh
 
-onerror /bin/reboot
+onerror /sbin/reboot
 
-/bin/kmount -vc /dev
+/sbin/kmount -vc /dev
 reopen /dev/console
 
-/bin/kmount -vc /sys
-/bin/kmount -vc /proc
+/sbin/kmount -vc /sys
+/sbin/kmount -vc /proc
 
-/bin/modprobe crypto_engine
-/bin/modprobe crypto_user
-/bin/modprobe cryptd
-/bin/modprobe cbc
-/bin/modprobe ecb
-/bin/modprobe xts
-/bin/modprobe dm-crypt
+/sbin/modprobe crypto_engine
+/sbin/modprobe crypto_user
+/sbin/modprobe cryptd
+/sbin/modprobe cbc
+/sbin/modprobe ecb
+/sbin/modprobe xts
+/sbin/modprobe dm-crypt
 
-/bin/passblk
+/sbin/runwith /sbin/passblk /sbin/udevmod
 
-/bin/kmount /root /dev/mapper/root ext4
+/sbin/kmount /root /dev/mapper/root ext4
 
-exec /bin/switchroot /root /sbin/system/start
+exec /sbin/switchroot /root /sbin/system/start

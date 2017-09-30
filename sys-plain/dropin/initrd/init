@@ -1,15 +1,15 @@
-#!/bin/msh
+#!/sbin/msh
 
-onerror /bin/reboot
+onerror /sbin/reboot
 
-/bin/kmount -vc /dev
+/sbin/kmount -vc /dev
 reopen /dev/console
 
-/bin/kmount -vc /sys
-/bin/kmount -vc /proc
+/sbin/kmount -vc /sys
+/sbin/kmount -vc /proc
 
-/bin/findblk
+/sbin/runwith /sbin/findblk /sbin/udevmod
 
-/bin/kmount /root /dev/mapper/root ext4
+/sbin/kmount /root /dev/mapper/root ext4
 
-exec /bin/switchroot /root /sbin/system/start
+exec /sbin/switchroot /root /sbin/system/start

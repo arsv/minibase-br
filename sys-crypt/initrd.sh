@@ -4,22 +4,31 @@ set -e
 mkdir -p initrd
 
 cp -at initrd/ dropin/initrd/*
-cp -at initrd/ ../minibase/out/boot/bin
+cp -at initrd/ ../minibase/out/boot/sbin
 
-rm initrd/bin/findblk
+rm initrd/sbin/findblk
 
 kver=4.12.10
-kmod=lib/modules/$kver/kernel/
+kmod=lib/modules/$kver
 broot=../buildroot/output/target
 
-mkdir -p initrd/$kmod/drivers/char
+msrc=$broot/lib/modules/$kver/kernel/drivers
+mdst=initrd/lib/modules/$kver/kernel/drivers
 
-cp -at initrd/$kmod/ $broot/$kmod/crypto
-cp -at initrd/$kmod/drivers/ $broot/$kmod/drivers/md
-cp -at initrd/$kmod/drivers/ $broot/$kmod/drivers/dax
-cp -at initrd/$kmod/drivers/ $broot/$kmod/drivers/crypto
-cp -at initrd/$kmod/drivers/char/ $broot/$kmod/drivers/char/hw_random
-cp -at initrd/lib/modules/$kver $broot/lib/modules/$kver/modules.dep
+mkdir -p $mdst/char
+
+cp -at initrd/$kmod/kernel $broot/$kmod/kernel/crypto
+
+cp -at initrd/$kmod $broot/$kmod/modules.dep
+cp -at initrd/$kmod $broot/$kmod/modules.alias
+
+cp -at $mdst/ $msrc/md
+cp -at $mdst/ $msrc/dax
+cp -at $mdst/ $msrc/crypto
+cp -at $mdst/ $msrc/block
+cp -at $mdst/ $msrc/ata
+cp -at $mdst/ $msrc/usb
+cp -at $mdst/char/ $msrc/char/hw_random
 
 mkdir -p initrd/etc
 cp dekeys.nkw initrd/etc/dekeys
