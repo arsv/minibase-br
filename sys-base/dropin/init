@@ -1,0 +1,13 @@
+#!/sbin/msh
+
+/sbin/kmount -vc /dev
+reopen /dev/console
+
+/sbin/kmount -vc /sys
+/sbin/kmount -vc /proc
+
+-/bin/busybox sh
+
+echo ""
+
+exec /sbin/reboot -p

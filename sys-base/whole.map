@@ -1,0 +1,11 @@
+# All sizes are in 512-blocks
+
+MiB=2048   # 1MiB = 2048*512
+
+bootskip=32
+bootsize=$((4*MiB-bootskip))
+rootskip=$((bootskip+bootsize))
+rootsize=$((4*MiB))
+totalsize=$((rootskip+rootsize))
+
+# vim: ft=sh
