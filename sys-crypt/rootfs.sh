@@ -48,4 +48,4 @@ mkfs.ext4 -d rootfs rootfs.img $((rootsize/2))
 END
 
 echo "Encrypting root filesystem"
-../minibase/out/sbin/deitool -e rootfs.img rootfs.enc initrd/etc/dekeys 1
+../minibase/out/sbin/deitool -e rootfs.img rootfs.enc dekeys.nkw 1

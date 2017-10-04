@@ -9,7 +9,7 @@ whole.img: rootfs.img bootfs.img whole.map
 bootfs.img: initrd.img whole.map
 	./bootfs.sh
 
-rootfs.img: whole.map
+rootfs.img: whole.map dekeys.nkw
 	./rootfs.sh
 
 initrd.img: dekeys.nkw
