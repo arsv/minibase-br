@@ -30,7 +30,8 @@ mkdir -p $mdst
 cp -at $mdst $msrc/block
 cp -at $mdst $msrc/ata
 cp -at $mdst $msrc/usb
-cp -at initrd/$kmod $broot/$kmod/modules.alias
-cp -at initrd/$kmod $broot/$kmod/modules.dep
+
+depmod -b initrd $kver
+rm initrd/lib/modules/$kver/*.bin
 
 (cd initrd && find . | cpio -oH newc) | gzip -c > initrd.img

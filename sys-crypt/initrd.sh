@@ -19,9 +19,6 @@ mkdir -p $mdst/char
 
 cp -at initrd/$kmod/kernel $broot/$kmod/kernel/crypto
 
-cp -at initrd/$kmod $broot/$kmod/modules.dep
-cp -at initrd/$kmod $broot/$kmod/modules.alias
-
 cp -at $mdst/ $msrc/md
 cp -at $mdst/ $msrc/dax
 cp -at $mdst/ $msrc/crypto
@@ -29,6 +26,9 @@ cp -at $mdst/ $msrc/block
 cp -at $mdst/ $msrc/ata
 cp -at $mdst/ $msrc/usb
 cp -at $mdst/char/ $msrc/char/hw_random
+
+depmod -b initrd $kver
+rm initrd/lib/modules/$kver/*.bin
 
 mkdir -p initrd/etc
 cp dekeys.nkw initrd/etc/dekeys
