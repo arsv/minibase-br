@@ -1,0 +1,4 @@
+#!/sbin/msh
+
+setenv PATH "/sbin/network:/sbin"
+exec /sbin/service/ifmon
