@@ -5,8 +5,7 @@ will contain just enough to run Weston and (if the hardware is present)
 connect to a wifi network.
 
 The images can be used with qemu, or with an Intel-based laptop capable
-of booting in BIOS mode. The limitations are because of pre-configured
-kernel, initrd scripts, and partition table.
+of booting in BIOS mode.
 
 WARNING: buildroot takes a lot of time and about 6GB of space to build.
 
@@ -16,12 +15,11 @@ System contents
 The resulting images contain
 	
 	* ~3MB kernel
-	* ~3MB of kernel modules
-	* ~500KB of firmware for iwlwifi
-	* ~400KB of minibase tools
+	* ~6MB of kernel modules
+	* ~11MB of firmware for iwlwifi (6000 and 8000 series)
+	* ~550KB of minibase tools
 	* ~1MB musl+busybox
 	* about 30MB of weston and its dependencies
-	* about 20MB of free space
 
 Ignoring root shells (which shouldn't be there in a real system),
 the `weston` executable is the first one to load libc during boot.
@@ -29,7 +27,7 @@ the `weston` executable is the first one to load libc during boot.
 
 Pre-built images
 ~~~~~~~~~~~~~~~~
-Check "images" branch, and skip to Booting with qemu below.
+Check Releases tab, and skip to Booting with qemu below.
 
 
 Prerequisites
@@ -117,6 +115,8 @@ if KVM is not available, but be prepared for nearly unusable system. Weston
 is *really* slow. Without KVM, it may take more than 5s to start and it will
 look like the system is hung up. It's not, it's just Weston grinding its gears.
 
+Password for sys-crypt is "swordfish".
+
 
 Booting with real hardware
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -154,11 +154,49 @@ Use `wictl` to scan/connect to network:
 
 	wictl -s               # scan wifi
 	wictl -p blackhole     # ask passphrase and connect to a named AP
-	wictl -e               # bring up ethernet
 
-(the above only works if there are any wifi devices available)
+The above only works if there are any wifi devices available. Wired interfaces
+may be queries and initialized using ifctl:
+
+	ifctl                  # show networking devices
+	ifctl -a [dev]         # bring up and dhpc dev
 
 The interactive shell is busybox sh, and there's a bunch of common commands
 provided by busybox as well.
 
-Tap C-Esc to bring up control vt. Shift-R to reboot, Shift-P to poweroff etc.
+Tap C-Esc to bring up control VT. Shift-R to reboot, Shift-P to poweroff etc.
+
+If running on real hardware, press C-Power to power the system off, and hold
+C-A-Del for about a second to reboot.
+
+
+Bootloading
+~~~~~~~~~~~
+The images use syslinux for bootloader. Legacy/BIOS should work.
+UEFI mode *may* work, or it may not. UEFI boot should *not* be expected
+to work in qemu due to bootloader limitations.
+
+There is absolutely nothing minibase-specific about booting the system,
+any configuration that will get the kernel and initrd into the memory
+should work. Feel free to experiment.
+
+The system uses MBR ID 0x11223344 to find its boot media.
+
+
+Troubleshooting and caveats
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Errors at "Waiting for devices" stage indicate lack of necessary modules,
+especially USB-related.
+
+Weston may not display cursor in qemu upon boot. Try switching VTs (C-Esc
+or C-F2 or C-F4, then C-F3) to force reinitialization. Not a minibase issue
+as far as I can tell at this point. Should work much better on real hardware.
+
+Weston degrades into unusable mess when running in non-KVM qemu. Apparently
+slow emulated CPU breaks some frame sync assumptions. Without KVM, it may
+also take something like 5+ seconds to start, showing blank screen in process.
+
+The kernel is configured for the hardware I have at hand. Feel free
+to reconfigure if necessary. Sadly enabling everything is not an option
+for a system that aims to be "small". Full set of iwlwifi firmware alone
+takes more space than the whole userspace including Weston.
