@@ -200,3 +200,7 @@ The kernel is configured for the hardware I have at hand. Feel free
 to reconfigure if necessary. Sadly enabling everything is not an option
 for a system that aims to be "small". Full set of iwlwifi firmware alone
 takes more space than the whole userspace including Weston.
+
+No wireless interfaces on a HW with a supported Intel card likely likely means
+no firmware for this particular card. Try to figure out which file it needs,
+and drop it to /lib/firmware.
