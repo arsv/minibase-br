@@ -38,6 +38,7 @@ cp -at rootfs ../minibase/out/sbin
 
 ln -sf busybox rootfs/bin/sh
 rm -f rootfs/var/run; ln -sf /run rootfs/var/run
+./trimfw.sh
 
 rm -f rootfs.img
 
