@@ -4,21 +4,21 @@ and non-encrypted, both based on Buildroot. When built, the images
 will contain just enough to run Weston and (if the hardware is present)
 connect to a wifi network.
 
-The images can be used with qemu, or with an Intel-based laptop capable
-of booting in BIOS mode.
+The images should be bootable with qemu as well as with reasonably recent
+x86_64 hardware with Intel graphics (and preferably iwlwifi wireless card).
 
-WARNING: buildroot takes a lot of time and about 6GB of space to build.
+WARNING: buildroot takes lots of time and about 6GB of space to build.
 
 
 System contents
 ~~~~~~~~~~~~~~~
 The resulting images contain
 	
-	* ~3MB kernel
+	* ~4MB kernel
 	* ~6MB of kernel modules
-	* ~11MB of firmware for iwlwifi (6000 and 8000 series)
+	* ~9MB of firmware blobs for iwlwifi
 	* ~550KB of minibase tools
-	* ~1MB musl+busybox
+	* ~1MB musl+busybox (interactive shell)
 	* about 30MB of weston and its dependencies
 
 Ignoring root shells (which shouldn't be there in a real system),
@@ -42,7 +42,7 @@ Also must be available:
 
 	* mtools
 	* syslinux, with files in /usr/share/syslinux
-	  (fix the scripts if the files are in another location)
+	  (tweak the scripts if the files are in another location)
 
 Buildroot could be used to build both, but most system have them as packages
 anyway so why bother.
@@ -110,10 +110,7 @@ Run xqemu.sh in respective directories:
 	cd sys-plain
 	./xqemu.sh
 
-The scripts will attempt to run qemu with -enable-kvm. Remove that option
-if KVM is not available, but be prepared for nearly unusable system. Weston
-is *really* slow. Without KVM, it may take more than 5s to start and it will
-look like the system is hung up. It's not, it's just Weston grinding its gears.
+The scripts will attempt to run qemu with -enable-kvm.
 
 Password for sys-crypt is "swordfish".
 
@@ -125,8 +122,10 @@ Write the image onto usb stick:
 	cd sys-crypt
 	dd if=whole.img of=/dev/sdb   # make sure it's the right device
 
-and try to persuade hw's firmware to boot from that. The image is a regular
-BIOS/MBR boot image with two partitions and syslinux for bootloader.
+and try to persuade the box to boot from that.
+
+The image should be both BIOS and UEFI bootable on x86_64 hardware.
+Mixed-mode UEFI (32-bit UEFI on 64-bit CPU) may or may not work.
 
 
 Getting around the system
@@ -193,14 +192,13 @@ or C-F2 or C-F4, then C-F3) to force reinitialization. Not a minibase issue
 as far as I can tell at this point. Should work much better on real hardware.
 
 Weston degrades into unusable mess when running in non-KVM qemu. Apparently
-slow emulated CPU breaks some frame sync assumptions. Without KVM, it may
+the slow emulated CPU breaks some frame sync assumptions. Without KVM, it may
 also take something like 5+ seconds to start, showing blank screen in process.
 
 The kernel is configured for the hardware I have at hand. Feel free
 to reconfigure if necessary. Sadly enabling everything is not an option
-for a system that aims to be "small". Full set of iwlwifi firmware alone
-takes more space than the whole userspace including Weston.
+for a system that aims to be "small".
 
-No wireless interfaces on a HW with a supported Intel card likely likely means
+No wireless interfaces on HW with a supported Intel card likely likely means
 no firmware for this particular card. Try to figure out which file it needs,
 and drop it to /lib/firmware.
