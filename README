@@ -127,6 +127,12 @@ and try to persuade the box to boot from that.
 The image should be both BIOS and UEFI bootable on x86_64 hardware.
 Mixed-mode UEFI (32-bit UEFI on 64-bit CPU) may or may not work.
 
+There is absolutely nothing minibase-specific about booting the system,
+any configuration that will get the kernel and initrd into the memory
+should work. Feel free to experiment.
+
+The system uses MBR ID 0x11223344 to find its boot media.
+
 
 Getting around the system
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -170,19 +176,6 @@ Tap C-Esc to bring up control VT. Shift-R to reboot, Shift-P to poweroff etc.
 
 If running on real hardware, press C-Power to power the system off, and hold
 C-A-Del for about a second to reboot.
-
-
-Bootloading
-~~~~~~~~~~~
-The images use syslinux for bootloader. Legacy/BIOS should work.
-UEFI mode *may* work, or it may not. UEFI boot should *not* be expected
-to work in qemu due to bootloader limitations.
-
-There is absolutely nothing minibase-specific about booting the system,
-any configuration that will get the kernel and initrd into the memory
-should work. Feel free to experiment.
-
-The system uses MBR ID 0x11223344 to find its boot media.
 
 
 Troubleshooting and caveats
