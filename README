@@ -18,8 +18,9 @@ The resulting images contain
 	* ~6MB of kernel modules
 	* ~9MB of firmware blobs for iwlwifi
 	* ~550KB of minibase tools
-	* ~1MB musl+busybox (interactive shell)
+	* ~1MB musl+busybox (the latter only used for interactive shell)
 	* about 30MB of weston and its dependencies
+	* about 7MB atop of that for xwayland support
 
 Ignoring root shells (which shouldn't be there in a real system),
 the `weston` executable is the first one to load libc during boot.
