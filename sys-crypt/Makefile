@@ -1,5 +1,9 @@
 all: whole.img
 
+../minibase/out:
+	@echo minibase has not been built
+	@false
+
 dekeys.nkw:
 	../minibase/out/sbin/dektool -c dekeys.nkw
 
@@ -9,10 +13,10 @@ whole.img: rootfs.img bootfs.img whole.map
 bootfs.img: initrd.img whole.map
 	./bootfs.sh
 
-rootfs.img: whole.map dekeys.nkw
+rootfs.img: whole.map dekeys.nkw | ../minibase/out
 	./rootfs.sh
 
-initrd.img: dekeys.nkw
+initrd.img: dekeys.nkw | ../minibase/out
 	./initrd.sh
 
 clean:
