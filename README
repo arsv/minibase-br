@@ -10,6 +10,19 @@ x86_64 hardware with Intel graphics (and preferably iwlwifi wireless card).
 WARNING: buildroot takes lots of time and about 6GB of space to build.
 
 
+Pre-built images
+~~~~~~~~~~~~~~~~
+Check Releases tab, and skip to Booting with qemu below.
+https://github.com/arsv/miniroot/releases
+
+  sys-plain is bootable image with non-encrypted rootfs.
+  sys-crypt is bootable image with encrypted rootfs.
+
+  sys-plain-files contains complete initrd+bootfs+rootfs tree
+    for those who'd like to take a look at the files but do not
+    want to bother with mounting disk images.
+
+
 System contents
 ~~~~~~~~~~~~~~~
 The resulting images contain
@@ -24,11 +37,6 @@ The resulting images contain
 
 Ignoring root shells (which shouldn't be there in a real system),
 the `weston` executable is the first one to load libc during boot.
-
-
-Pre-built images
-~~~~~~~~~~~~~~~~
-Check Releases tab, and skip to Booting with qemu below.
 
 
 Prerequisites
