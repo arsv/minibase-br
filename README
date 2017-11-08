@@ -179,9 +179,12 @@ may be queries and initialized using ifctl:
 	ifctl -a [dev]         # bring up and dhpc dev
 
 The interactive shell is busybox sh, and there's a bunch of common commands
-provided by busybox as well.
+provided by busybox as well. If network is connected, try
 
-Tap C-Esc to bring up control VT. Shift-R to reboot, Shift-P to poweroff etc.
+	ping example.com       # should not work with non-suid busybox
+	sudo ping example.com  # should work
+
+Tap C-Esc to bring up the control VT. Shift-R to reboot, Shift-P to poweroff.
 
 If running on real hardware, press C-Power to power the system off, and hold
 C-A-Del for about a second to reboot.
@@ -195,6 +198,10 @@ especially USB-related.
 Weston may not display cursor in qemu upon boot. Try switching VTs (C-Esc Esc)
 to force reinitialization. Not a minibase issue as far as I can tell at this
 point. Should work much better on real hardware.
+
+Weston may pause on startup in qemu, showing its startup message with
+non-blinking cursor. Try moving the VM mouse. Seems to be related to missing
+mouse cursor issue above.
 
 Weston degrades into unusable mess when running in non-KVM qemu. Apparently
 the slow emulated CPU breaks some frame sync assumptions. Without KVM, it may
