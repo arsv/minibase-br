@@ -55,5 +55,6 @@ rm -f rootfs.img
 # mkfs.ext2 needs size in KiB, that's half the number of 512-blocks
 fakeroot sh <<END
 chown -h -R 0:0 rootfs
+chown -R 1:1 rootfs/home/user
 mkfs.ext4 -q -d rootfs rootfs.img $((size/2))
 END
