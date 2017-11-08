@@ -38,6 +38,7 @@ rm -f  rootfs/etc/hostname
 rm -f  rootfs/etc/profile
 rm -f  rootfs/etc/shadow
 rm -f  rootfs/THIS_IS_NOT_YOUR_ROOT_FILESYSTEM
+rm -fr rootfs/usr/lib/udev
 ln -sf /run/resolv.conf rootfs/etc/resolv.conf
 
 cp -at rootfs/ $top/common/rootfs/*
