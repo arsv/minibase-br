@@ -42,6 +42,9 @@ rm -f rootfs/var/run; ln -sf /run rootfs/var/run
 
 rm -f rootfs.img
 
+# gets installed suid for whatever reason
+chmod u-s rootfs/bin/busybox
+
 # mkfs.ext2 needs size in KiB, that's half the number of 512-blocks
 fakeroot sh <<END
 chown -h -R 0:0 rootfs
