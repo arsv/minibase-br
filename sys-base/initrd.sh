@@ -5,7 +5,7 @@ set -e
 rm -fr initrd
 mkdir -p initrd
 
-cp -at initrd/ dropin/*
+cp -at initrd/ boot/*
 cp -at initrd/ ../minibase/out/boot/sbin
 cp -at initrd/sbin ../minibase/out/sbin/dmesg
 

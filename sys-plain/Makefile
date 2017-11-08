@@ -4,13 +4,13 @@ all: whole.img
 	@echo minibase has not been built
 	@false
 
-whole.img: rootfs.img bootfs.img whole.map
+whole.img: rootfs.img bootfs.img ../common/whole.map
 	./whole.sh
 
-bootfs.img: initrd.img whole.map
+bootfs.img: initrd.img ../common/whole.map
 	./bootfs.sh
 
-rootfs.img: whole.map | ../minibase/out
+rootfs.img: ../common/whole.map | ../minibase/out
 	./rootfs.sh
 
 initrd.img: | ../minibase/out

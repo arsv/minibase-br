@@ -3,7 +3,7 @@
 set -e
 mkdir -p initrd
 
-cp -at initrd/ dropin/initrd/*
+cp -at initrd/ boot/*
 cp -at initrd/ ../minibase/out/boot/sbin
 
 rm initrd/sbin/findblk

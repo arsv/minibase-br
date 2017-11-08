@@ -4,11 +4,16 @@ set -e
 
 source ./whole.map
 
-dd of=whole.img if=/dev/zero bs=512 count=$totalsize
+if [ -n "$1" ]; then
+	out="$1"
+else
+	out="whole.img"
+	dd of=$out if=/dev/zero bs=512 count=$totalsize
+fi
 
-dd of=whole.img if=/usr/lib/syslinux/bios/mbr.bin conv=notrunc
+dd of=$out if=/usr/lib/syslinux/bios/mbr.bin conv=notrunc
 
-sfdisk whole.img <<END
+sfdisk -q $out <<END
 label: dos
 label-id: 0x11223344
 
@@ -16,5 +21,5 @@ label-id: 0x11223344
 2: start=$rootskip, size=$rootsize, type=83
 END
 
-dd of=whole.img if=bootfs.img bs=512 seek=$bootskip conv=notrunc
-dd of=whole.img if=rootfs.img bs=512 seek=$rootskip conv=notrunc
+dd of=$out if=bootfs.img bs=512 seek=$bootskip conv=notrunc
+dd of=$out if=rootfs.img bs=512 seek=$rootskip conv=notrunc

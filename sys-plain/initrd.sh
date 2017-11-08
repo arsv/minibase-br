@@ -5,7 +5,7 @@ set -e
 rm -fr initrd
 mkdir -p initrd
 
-cp -at initrd/ dropin/initrd/*
+cp -at initrd/ boot/*
 cp -at initrd/ ../minibase/out/boot/sbin
 
 # not needed for plaintext images
