@@ -24,6 +24,7 @@ cp -at $mdst $msrc/block
 cp -at $mdst $msrc/ata
 cp -at $mdst $msrc/usb
 
+cp -at initrd/lib/modules/$kver $broot/lib/modules/$kver/modules.{builtin,order}
 depmod -b initrd $kver
 rm initrd/lib/modules/$kver/*.bin
 
