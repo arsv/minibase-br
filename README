@@ -18,9 +18,9 @@ https://github.com/arsv/miniroot/releases
   sys-plain is bootable image with non-encrypted rootfs.
   sys-crypt is bootable image with encrypted rootfs.
 
-  sys-plain-files contains complete initrd+bootfs+rootfs tree
-    for those who'd like to take a look at the files but do not
-    want to bother with mounting disk images.
+  miniroot contains complete initrd+bootfs+rootfs tree
+    for those who'd like to take a look at the files but
+    do not want to bother with mounting disk images.
 
 
 System contents
