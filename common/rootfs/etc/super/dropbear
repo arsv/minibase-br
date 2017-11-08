@@ -1,0 +1,4 @@
+#!/sbin/msh
+
+mkdir /var/run/dropbear 0700
+exec /usr/sbin/dropbear -FR
