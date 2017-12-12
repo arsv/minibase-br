@@ -3,19 +3,16 @@
 set -e
 
 rm -fr initrd
-mkdir -p initrd
+mkdir -p initrd/sbin
 
 cp -at initrd/ boot/*
-cp -at initrd/ ../minibase/out/boot/sbin
-cp -at initrd/sbin ../minibase/out/sbin/dmesg
-
-rm initrd/sbin/passblk
+cp -at initrd/sbin/ ../minibase/out/sbin/*
 
 broot=../buildroot/output/target
 
 mkdir -p initrd/lib
 cp -at initrd/lib/ $broot/lib/*.so*
-cp -at initrd/ $broot/bin
+cp -at initrd/     $broot/bin
 chmod 0755 initrd/bin/busybox
 
 kver=4.12.10

@@ -5,7 +5,7 @@ all: whole.img
 	@false
 
 dekeys.nkw:
-	../minibase/out/sbin/dektool -c dekeys.nkw
+	../minibase/out/sbin/dektool create dekeys.nkw
 
 whole.img: rootfs.img bootfs.img whole.map
 	./whole.sh

@@ -1,6 +1,6 @@
 #!/sbin/msh
 
-onerror /sbin/system/reboot
+onexit /sbin/system/reboot
 
 setenv PATH /bin:/sbin:/usr/bin
 
@@ -15,4 +15,4 @@ umask 0002
 
 mkdir /run/ctrl
 
-exec /sbin/system/super /sbin/system/reboot
+exec /sbin/service/super /sbin/system/reboot

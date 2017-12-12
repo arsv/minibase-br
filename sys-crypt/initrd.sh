@@ -3,10 +3,20 @@
 set -e
 mkdir -p initrd
 
-cp -at initrd/ boot/*
-cp -at initrd/ ../minibase/out/boot/sbin
+sdst=initrd/sbin
+ssrc=../minibase/out/sbin
 
-rm initrd/sbin/findblk
+mkdir -p $sdst
+cp -at $sdst $ssrc/system/passblk
+cp -at $sdst $ssrc/system/switchroot
+cp -at $sdst $ssrc/system/reboot
+cp -at $sdst $ssrc/service/udevmod
+cp -at $sdst $ssrc/modprobe
+cp -at $sdst $ssrc/runwith
+cp -at $sdst $ssrc/kmount
+cp -at $sdst $ssrc/msh
+
+cp -at initrd/ boot/*
 
 kver=4.12.10
 kmod=lib/modules/$kver

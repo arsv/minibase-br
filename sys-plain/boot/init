@@ -1,6 +1,6 @@
 #!/sbin/msh
 
-onerror /sbin/reboot
+onexit /sbin/reboot
 
 /sbin/kmount -vc /dev
 reopen /dev/console

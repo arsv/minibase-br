@@ -3,13 +3,21 @@
 set -e
 
 rm -fr initrd
-mkdir -p initrd
+
+sdst=initrd/sbin
+ssrc=../minibase/out/sbin
+
+mkdir -p $sdst
+cp -at $sdst $ssrc/system/findblk
+cp -at $sdst $ssrc/system/switchroot
+cp -at $sdst $ssrc/system/reboot
+cp -at $sdst $ssrc/service/udevmod
+cp -at $sdst $ssrc/modprobe
+cp -at $sdst $ssrc/runwith
+cp -at $sdst $ssrc/kmount
+cp -at $sdst $ssrc/msh
 
 cp -at initrd/ boot/*
-cp -at initrd/ ../minibase/out/boot/sbin
-
-# not needed for plaintext images
-rm initrd/sbin/passblk
 
 kver=4.12.10
 kmod=lib/modules/$kver
