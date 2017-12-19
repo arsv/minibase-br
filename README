@@ -30,13 +30,13 @@ The resulting images contain
 	* ~4MB kernel
 	* ~6MB of kernel modules
 	* ~9MB of firmware blobs for iwlwifi
-	* ~550KB of minibase tools
-	* ~1MB musl+busybox (the latter only used for interactive shell)
+	* ~650KB of minibase tools
+
+	* ~600KB of musl (not needed for minibase)
 	* about 30MB of weston and its dependencies
 	* about 7MB atop of that for xwayland support
 
-Ignoring root shells (which shouldn't be there in a real system),
-the `weston` executable is the first one to load libc during boot.
+`weston` executable is the first one to load libc during boot.
 
 
 Prerequisites
@@ -178,12 +178,6 @@ may be queries and initialized using ifctl:
 	ifctl                  # show networking devices
 	ifctl -a [dev]         # bring up and dhpc dev
 
-The interactive shell is busybox sh, and there's a bunch of common commands
-provided by busybox as well. If network is connected, try
-
-	ping example.com       # should not work with non-suid busybox
-	sudo ping example.com  # should work
-
 Tap C-Esc to bring up the control VT. Shift-R to reboot, Shift-P to poweroff.
 
 If running on real hardware, press C-Power to power the system off, and hold
@@ -195,21 +189,18 @@ Troubleshooting and caveats
 Errors at "Waiting for devices" stage indicate lack of necessary modules,
 especially USB-related.
 
-Weston may not display cursor in qemu upon boot. Try switching VTs (C-Esc Esc)
-to force reinitialization. Not a minibase issue as far as I can tell at this
-point. Should work much better on real hardware.
-
 Weston may pause on startup in qemu, showing its startup message with
-non-blinking cursor. Try moving the VM mouse. Seems to be related to missing
-mouse cursor issue above.
+non-blinking cursor. Try moving the VM mouse and/or tapping some keys.
+Not a minibase issue as far as I can tell.
 
 Weston degrades into unusable mess when running in non-KVM qemu. Apparently
 the slow emulated CPU breaks some frame sync assumptions. Without KVM, it may
 also take something like 5+ seconds to start, showing blank screen in process.
 
-The kernel is configured for the hardware I have at hand. Feel free
-to reconfigure if necessary. Sadly enabling everything is not an option
-for a system that aims to be "small".
+While the kernel is modules, the supplied configuration only includes modules
+for the stuff I have at hand (Intel based laptops). Feel free to reconfigure
+if necessary. Sadly enabling everything is not an option for a system that aims
+to be "small" in any sense of the word.
 
 No wireless interfaces on HW with a supported Intel card likely likely means
 no firmware for this particular card. Try to figure out which file it needs,

@@ -6,4 +6,4 @@ cd /
 
 setenv PATH "/usr/bin:/bin:/usr/sbin:/sbin"
 
-exec /bin/busybox sh
+exec /sbin/cmd

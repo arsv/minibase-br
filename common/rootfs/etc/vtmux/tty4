@@ -2,7 +2,7 @@
 
 setenv USER user
 setenv HOME /home/user
-setenv SHELL /bin/sh
+setenv SHELL /sbin/cmd
 
 cd $HOME
 

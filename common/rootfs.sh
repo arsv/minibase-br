@@ -45,12 +45,8 @@ ln -sf /run/resolv.conf rootfs/etc/resolv.conf
 cp -at rootfs/ $top/common/rootfs/*
 cp -at rootfs/ $top/minibase/out/sbin
 
-ln -sf busybox rootfs/bin/sh
 rm -f rootfs/var/run; ln -sf /run rootfs/var/run
 $top/common/trimfw.sh rootfs
-
-# gets installed suid for whatever reason
-chmod u-s rootfs/bin/busybox
 
 rm -f rootfs.img
 
