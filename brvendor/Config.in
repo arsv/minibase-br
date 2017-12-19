@@ -1,0 +1,1 @@
+source "$BR2_EXTERNAL_MINIBASE_PATH/package/kilo/Config.in"
