@@ -13,30 +13,33 @@ WARNING: buildroot takes lots of time and about 6GB of space to build.
 Pre-built images
 ~~~~~~~~~~~~~~~~
 Check Releases tab, and skip to Booting with qemu below.
-https://github.com/arsv/miniroot/releases
+https://github.com/arsv/minibase-br/releases
 
-  sys-plain is bootable image with non-encrypted rootfs.
   sys-crypt is bootable image with encrypted rootfs.
+  sys-plain is bootable image with non-encrypted rootfs.
 
-  miniroot contains complete initrd+bootfs+rootfs tree
-    for those who'd like to take a look at the files but
-    do not want to bother with mounting disk images.
+  unpacked.tar.gz contains complete initrd+bootfs+rootfs trees
+    for those who'd like to take a look at the files but do not
+    want to bother with mounting disk images.
 
 
 System contents
 ~~~~~~~~~~~~~~~
 The resulting images contain
 	
-	* ~4MB kernel
+	* ~3MB kernel
 	* ~6MB of kernel modules
 	* ~9MB of firmware blobs for iwlwifi
 	* ~650KB of minibase tools
 
-	* ~600KB of musl (not needed for minibase)
+	* ~600KB musl (not needed for minibase)
+	* ~200KB dropbear
 	* about 30MB of weston and its dependencies
 	* about 7MB atop of that for xwayland support
 
-`weston` executable is the first one to load libc during boot.
+During the boot, `weston` and `dropbear` are the first executables
+to load libc. Everything else up to the point when the system can
+run `weston` is handled by statically linked minibase tools.
 
 
 Prerequisites
@@ -47,7 +50,7 @@ The host system need a usable GNU toolchain:
 	* binutils, gcc, make
 	* wget to download the sources
 
-Also must be available:
+and also
 
 	* mtools
 	* syslinux, with files in /usr/share/syslinux
@@ -94,9 +97,9 @@ Assemble encrypted image:
 
 The first sys-crypt build will generate image encryptions keys which will
 then be re-used unless removed manually. The tool will ask for passphrase
-when generating the keys, and then once again to unlock the keys when
+when generating the keys, and then once again to unwrap the keys when
 encrypting the image. Any subsequent run will only ask for passphrase to
-unlock the keys.
+unwrap the keys.
 
 
 System structure
@@ -107,21 +110,21 @@ will be in respective directories. Feel free to investigate them.
 The kernel invokes initrd/init on startup. That script in turn execs into
 rootfs/sbin/system/start which is a script as well.
 
-The system is assembled by merging the contents of minibase/out,
-buildroot/output/target, and dropin/. The first two provide executables while
-the files from dropin determine system configuration.
+The rootfs images are assembled by merging the contents of minibase/out,
+buildroot/output/target, and common/rootfs/. Initrds use minibase binaries
+and the contents of either sys-crypt/boot or sys-plain/boot.
 
 
 Booting with qemu
 ~~~~~~~~~~~~~~~~~
 Run xqemu.sh in respective directories:
 
-	cd sys-plain
+	cd sys-crypt
 	./xqemu.sh
 
 The scripts will attempt to run qemu with -enable-kvm.
 
-Password for sys-crypt is "swordfish".
+The password for sys-crypt is "swordfish".
 
 
 Booting with real hardware
@@ -156,12 +159,12 @@ press C-A-3 to access it.
 Use `svctl` to query top-level supervisor:
 
 	svctl                  # process list
-	svctl -t udevmod       # stop udevmod
-	svctl -s udevmod       # start it again
-	svctl -P               # poweroff
+	svctl stop udevmod
+	svctl start udevmod
+	svctl poweroff
 
-	svctl keymon           # properly running service
-	svctl badsrv           # failed service
+	svctl show keymon      # properly running service
+	svctl show badsrv      # failed service
 
 Use `vtctl` to control vtmux:
 
@@ -169,14 +172,19 @@ Use `vtctl` to control vtmux:
 
 Use `wictl` to scan/connect to network:
 
-	wictl -s               # scan wifi
-	wictl -p blackhole     # ask passphrase and connect to a named AP
+	wifi scan              # scan wifi
+	wifi connect blackhole # ask passphrase and connect to a named AP
 
-The above only works if there are any wifi devices available. Wired interfaces
-may be queries and initialized using ifctl:
+The above only works if there are any wifi devices available.
+Wired interfaces may be queries and initialized using ifctl:
 
 	ifctl                  # show networking devices
 	ifctl -a [dev]         # bring up and dhpc dev
+
+These commands may come handy as well:
+
+	logcat                 # syslog contents
+	pstree                 # processes
 
 Tap C-Esc to bring up the control VT. Shift-R to reboot, Shift-P to poweroff.
 
@@ -189,15 +197,16 @@ Troubleshooting and caveats
 Errors at "Waiting for devices" stage indicate lack of necessary modules,
 especially USB-related.
 
-Weston may pause on startup in qemu, showing its startup message with
-non-blinking cursor. Try moving the VM mouse and/or tapping some keys.
-Not a minibase issue as far as I can tell.
+Weston may pause on startup in qemu with sys-plain, showing its startup
+message. Try moving the VM mouse and/or tapping some keys. Not a minibase
+issue as far as I can tell. Does not happen with sys-crypt which requires
+some keypress events early to enter the passphrase.
 
 Weston degrades into unusable mess when running in non-KVM qemu. Apparently
 the slow emulated CPU breaks some frame sync assumptions. Without KVM, it may
 also take something like 5+ seconds to start, showing blank screen in process.
 
-While the kernel is modules, the supplied configuration only includes modules
+While the kernel is modular, the supplied configuration only includes modules
 for the stuff I have at hand (Intel based laptops). Feel free to reconfigure
 if necessary. Sadly enabling everything is not an option for a system that aims
 to be "small" in any sense of the word.
