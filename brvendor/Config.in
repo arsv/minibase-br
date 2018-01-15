@@ -8,3 +8,5 @@ source "$BR2_EXTERNAL_MINIBASE_PATH/package/xf86-input-libinput/Config.in"
 source "$BR2_EXTERNAL_MINIBASE_PATH/package/xf86-video-intel/Config.in"
 
 endif
+
+source "$BR2_EXTERNAL_MINIBASE_PATH/package/fluxbox-patched/Config.in"

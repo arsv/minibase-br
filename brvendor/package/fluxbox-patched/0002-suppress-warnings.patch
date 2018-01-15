@@ -1,0 +1,25 @@
+No point in spamming these, we're perfectly ok with the defaults.
+
+--- a/src/FbTk/Resource.cc
++++ b/src/FbTk/Resource.cc
+@@ -86,9 +86,6 @@
+                            resource->altName().c_str(), &value_type, &value))
+             resource->setFromString(value.addr);
+         else {
+-            _FB_USES_NLS;
+-            cerr<<_FBTK_CONSOLETEXT(Error, FailedRead, "Failed to read", "Couldn't load a resource (following)")<<": "<<resource->name()<<endl;
+-            cerr<<_FBTK_CONSOLETEXT(Error, UsingDefault, "Setting default value", "Falling back to default value for resource")<<endl;
+             resource->setDefaultValue();
+         }
+     }
+--- a/src/FbTk/Resource.hh
++++ b/src/FbTk/Resource.hh
+@@ -215,8 +215,6 @@
+                        r.altName().c_str(), &value_type, &value)) {
+         r.setFromString(value.addr);
+     } else {
+-        std::cerr<<"Failed to read: "<<r.name()<<std::endl;
+-        std::cerr<<"Setting default value"<<std::endl;
+         r.setDefaultValue();
+     }
+ 

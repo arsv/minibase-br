@@ -1,0 +1,35 @@
+$SHELL is user's interactive shell. That code needs /bin/sh.
+
+X relies on /bin/sh in the same way, so this does not add any
+dependencies to the whole system.
+
+--- a/src/main.cc
++++ b/src/main.cc
+@@ -267,10 +267,7 @@
+ 
+     if (restarting) {
+         if (!restart_argument.empty()) {
+-            const char *shell = getenv("SHELL");
+-            if (!shell)
+-                shell = "/bin/sh";
+-
++            const char *shell = "/bin/sh";
+             execlp(shell, shell, "-c", restart_argument.c_str(), (const char *) NULL);
+             perror(restart_argument.c_str());
+         }
+--- a/src/FbCommands.cc
++++ b/src/FbCommands.cc
+@@ -154,12 +154,8 @@
+ 
+     FbTk::App::setenv("DISPLAY", display.c_str());
+ 
+-    // get shell path from the environment
+     // this process exits immediately, so we don't have to worry about memleaks
+-    const char *shell = getenv("SHELL");
+-    if (!shell)
+-        shell = "/bin/sh";
+-
++    const char *shell = "/bin/sh";
+     setsid();
+     execl(shell, shell, "-c", m_cmd.c_str(), static_cast<void*>(NULL));
+     exit(EXIT_SUCCESS);
