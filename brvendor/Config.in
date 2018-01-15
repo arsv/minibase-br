@@ -10,3 +10,4 @@ source "$BR2_EXTERNAL_MINIBASE_PATH/package/xf86-video-intel/Config.in"
 endif
 
 source "$BR2_EXTERNAL_MINIBASE_PATH/package/fluxbox-patched/Config.in"
+source "$BR2_EXTERNAL_MINIBASE_PATH/package/rxvt-unicode/Config.in"
