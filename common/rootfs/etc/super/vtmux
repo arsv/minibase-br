@@ -1,3 +1,5 @@
 #!/sbin/msh
 
+waitfor /dev/input/event2
+
 exec /sbin/service/vtmux 3

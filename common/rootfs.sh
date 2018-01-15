@@ -40,6 +40,7 @@ rm -f  rootfs/etc/shadow
 rm -f  rootfs/THIS_IS_NOT_YOUR_ROOT_FILESYSTEM
 rm -fr rootfs/usr/lib/udev
 rm -fr rootfs/lib/udev
+rm -fr rootfs/usr/share/X11/xorg.conf.d
 ln -sf /run/resolv.conf rootfs/etc/resolv.conf
 
 cp -at rootfs/ $top/common/rootfs/*
