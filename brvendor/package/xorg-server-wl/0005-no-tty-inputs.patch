@@ -1,0 +1,19 @@
+--- a/config/udev.c
++++ b/config/udev.c
+@@ -384,8 +384,6 @@ config_udev_pre_init(void)
+ 
+     udev_monitor_filter_add_match_subsystem_devtype(udev_monitor, "input",
+                                                     NULL);
+-    /* For Wacom serial devices */
+-    udev_monitor_filter_add_match_subsystem_devtype(udev_monitor, "tty", NULL);
+ #ifdef CONFIG_UDEV_KMS
+     /* For output GPU devices */
+     udev_monitor_filter_add_match_subsystem_devtype(udev_monitor, "drm", NULL);
+@@ -415,7 +413,6 @@ config_udev_init(void)
+         return 0;
+ 
+     udev_enumerate_add_match_subsystem(enumerate, "input");
+-    udev_enumerate_add_match_subsystem(enumerate, "tty");
+ #ifdef CONFIG_UDEV_KMS
+     udev_enumerate_add_match_subsystem(enumerate, "drm");
+ #endif

@@ -1,1 +1,10 @@
 source "$BR2_EXTERNAL_MINIBASE_PATH/package/kilo/Config.in"
+source "$BR2_EXTERNAL_MINIBASE_PATH/package/xorg-server-wl/Config.in"
+
+if BR2_PACKAGE_XORG_SERVER_WL
+
+source "$BR2_EXTERNAL_MINIBASE_PATH/package/xf86-input-evdev/Config.in"
+source "$BR2_EXTERNAL_MINIBASE_PATH/package/xf86-input-libinput/Config.in"
+source "$BR2_EXTERNAL_MINIBASE_PATH/package/xf86-video-intel/Config.in"
+
+endif
