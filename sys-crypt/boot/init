@@ -16,7 +16,7 @@ reopen /dev/console
 /sbin/modprobe xts
 /sbin/modprobe dm-crypt
 
-/sbin/runwith /sbin/passblk /sbin/udevmod
+/sbin/runwith /sbin/passblk /sbin/udevmod -s
 
 /sbin/kmount /root /dev/mapper/root ext4
 

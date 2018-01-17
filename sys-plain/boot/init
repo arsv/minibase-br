@@ -8,7 +8,7 @@ reopen /dev/console
 /sbin/kmount -vc /sys
 /sbin/kmount -vc /proc
 
-/sbin/runwith /sbin/findblk /sbin/udevmod
+/sbin/runwith /sbin/findblk /sbin/udevmod -s
 
 /sbin/kmount /root /dev/mapper/root ext4
 
