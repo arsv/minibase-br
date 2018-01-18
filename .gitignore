@@ -1,2 +1,4 @@
 /buildroot
 /buildroot-*
+/brrootfs/*
+!/brrootfs/stage.sh

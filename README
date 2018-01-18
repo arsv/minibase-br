@@ -9,15 +9,15 @@ x86_64 hardware with Intel graphics (and preferably iwlwifi wireless card).
 
 Pre-built images
 ~~~~~~~~~~~~~~~~
-Non-encrypted system is available as a ready-to-run image.
+To try the system without going through the whole build process,
+download either sys-plain.tar.bz2 or sys-crypt.tar from
 
   https://github.com/arsv/minibase-br/releases
 
-Download sys-plain.tar.bz2 and skip to "Booting with qemu" below.
+and skip to "Booting with qemu" below.
 
-The other archive there, "prebuilt.tar.bz2", contains pre-populated
-buildroot/output/target and buildroot/output/images directories.
-Follow the build intructions below but skip the Buildroot part.
+To see How the system is assembled without having to mess with
+Buildroot, download prebuilt.tar.bz2 and skip the buildroot part below.
 
 
 System contents
@@ -31,10 +31,10 @@ The resulting images contain
 
 	* ~600KB musl (not needed for minibase)
 	* ~200KB dropbear
+	* ~100KB of kilo and dash (needed for X)
 
-	* about 30MB of weston and its dependencies
-	* about 7MB atop of that for xwayland support
-	* over 40MB of X
+	* about 27MB of X, weston and their dependencies
+	  (hard to tell apart at this point)
 
 During the boot, `xorg`, and `dropbear` are the first executables
 to load libc. Everything else up to the point when the system can
@@ -43,7 +43,7 @@ run `xorg` is handled by statically linked minibase tools.
 
 Prerequisites
 ~~~~~~~~~~~~~
-The host system need a usable GNU toolchain:
+The host system needs a usable GNU toolchain:
 
 	* common POSIX tools
 	* binutils, gcc, make
@@ -55,20 +55,34 @@ and also
 	* syslinux, with files in /usr/share/syslinux
 	  (tweak the scripts if the files are in another location)
 
-Buildroot could be used to build both, but most system have them as packages
-anyway so why bother.
+Syslinux is difficult to work with, so for now the scripts rely
+on the host distro to provide it.
 
 
 How to build the images
 ~~~~~~~~~~~~~~~~~~~~~~~
+(Skip until "Update ./minibase ..." if working with prebuilt.tar.bz2)
+
 Download https://buildroot.org/downloads/buildroot-2017.08.tar.bz2,
 unpack it and rename the directory into ./buildroot.
 
 # If the host system runs glibc-2.26:
 #
-#	cp brvendor/package/flex/0002*.patch buildroot/package/flex/
+#	cp brvendor/package/flex/0002*.patch \
+#	   buildroot/package/flex/
 #
 # otherwise the build will fail.
+
+Build the system:
+
+	cd buildroot
+	make BR2_EXTERNAL=../brvendor minibase_defconfig
+	make            # this will take lots of time
+
+Stage resulting rootfs:
+
+	cd brrootfs
+	./stage.sh
 
 Update ./minibase and build it:
 
@@ -77,13 +91,6 @@ Update ./minibase and build it:
 	./configure
 	make
 	make install    # this will install into ./out
-
-Build the rest of the buildroot system
-(skip this if working with the pre-built package):
-
-	cd buildroot
-	make BR2_EXTERNAL=../brvendor minibase_defconfig
-	make            # this will take lots of time
 
 Assemble plaintext image:
 
@@ -100,19 +107,6 @@ then be re-used unless removed manually. The tool will ask for passphrase
 when generating the keys, and then once again to unwrap the keys when
 encrypting the image. Any subsequent run will only ask for passphrase to
 unwrap the keys.
-
-
-System structure
-~~~~~~~~~~~~~~~~
-At the end of the build, the complete contents of initrd, bootfs and rootfs
-will be in respective directories. Feel free to investigate them.
-
-The kernel invokes initrd/init on startup. That script in turn execs into
-rootfs/sbin/system/start which is a script as well.
-
-The rootfs images are assembled by merging the contents of minibase/out,
-buildroot/output/target, and rootfs-dropin. Initrds use minibase binaries
-and the contents of either sys-crypt/boot or sys-plain/boot.
 
 
 Booting with qemu

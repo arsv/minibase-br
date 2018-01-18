@@ -17,29 +17,17 @@ mkdir -p rootfs/var
 mkdir -p rootfs/home/user
 mkdir -p rootfs/home/root
 
-broot=../buildroot/output/target
-cp -at rootfs/ $broot/bin
-cp -at rootfs/ $broot/lib
-cp -at rootfs/ $broot/usr
-cp -at rootfs/ $broot/etc
-
-rm -fr rootfs/etc/udev
-rm -fr rootfs/etc/network
-rm -f  rootfs/etc/fstab
-rm -f  rootfs/etc/hostname
-rm -f  rootfs/etc/profile
-rm -f  rootfs/etc/shadow
-rm -f  rootfs/THIS_IS_NOT_YOUR_ROOT_FILESYSTEM
-rm -fr rootfs/usr/lib/udev
-rm -fr rootfs/lib/udev
-rm -fr rootfs/usr/share/X11/xorg.conf.d
-ln -sf /run/resolv.conf rootfs/etc/resolv.conf
-
-cp -at rootfs/ rootfs-dropin/*
-cp -at rootfs/ ../minibase/out/sbin
-
 rm -f rootfs/var/run; ln -sf /run rootfs/var/run
-./trimfw.sh rootfs
+
+#broot=../brrootfs
+
+#if [ -d ../buildroot/output/target ]; then
+#	(cd $broot && ./stage.sh)
+#fi
+
+cp -at rootfs/ ../brrootfs/{bin,etc,lib,usr}
+cp -at rootfs/ ../minibase/out/sbin
+cp -at rootfs/ rootfs-dropin/*
 
 rm -f rootfs.img
 
@@ -47,5 +35,5 @@ rm -f rootfs.img
 fakeroot sh <<END
 chown -h -R 0:0 rootfs
 chown -R 1:1 rootfs/home/user
-mkfs.ext4 -q -d rootfs rootfs.img $((rootsize/2))
+mkfs.ext4 -m 0 -q -d rootfs rootfs.img $((rootsize/2))
 END

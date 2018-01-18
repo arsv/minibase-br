@@ -8,7 +8,7 @@ rm -fr bootfs
 mkdir -p bootfs/linux
 
 cp initrd.img bootfs/linux/initrd
-cp ../buildroot/output/images/bzImage bootfs/linux/kernel
+cp ../brrootfs/bzImage bootfs/linux/kernel
 cp bootfs-dropin/syslinux.cfg bootfs/
 
 img=bootfs.img

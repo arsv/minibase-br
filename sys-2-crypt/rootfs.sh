@@ -6,7 +6,7 @@ plain=../sys-1-plain
 
 if [ ! -f $plain/rootfs.img ]; then
 	echo "Assembling plain rootfs"
-	make -C $plain rootfs.img
+	(cd $plain && ./rootfs.sh)
 fi
 
 if [ ! -f dekeys.nkw ]; then

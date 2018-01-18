@@ -1,3 +1,3 @@
 #!/bin/sh
 
-cp ../buildroot/output/images/bzImage kernel.bin
+cp ../brrootfs/bzImage kernel.bin
