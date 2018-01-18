@@ -1,13 +1,15 @@
 #!/sbin/msh
 
+onexit /sbin/reboot
+
 /sbin/kmount -vc /dev
 reopen /dev/console
 
 /sbin/kmount -vc /sys
 /sbin/kmount -vc /proc
 
--/bin/busybox sh
+setenv PATH /sbin:/bin
 
-echo ""
+/sbin/cmd
 
 exec /sbin/reboot -p

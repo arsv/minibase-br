@@ -1,16 +1,8 @@
 #!/bin/sh
 
 set -e
-top=..
-size="$1"
 
-if [ -f "NOT-HERE" ]; then
-	echo "$0: cannot run in this directory" >&2
-	exit 2
-elif [ -z "$size" ]; then
-	echo "$0: missing argument" >&2
-	exit 3
-fi
+source ./whole.map
 
 mkdir -p rootfs/bin
 mkdir -p rootfs/dev
@@ -25,7 +17,7 @@ mkdir -p rootfs/var
 mkdir -p rootfs/home/user
 mkdir -p rootfs/home/root
 
-broot=$top/buildroot/output/target
+broot=../buildroot/output/target
 cp -at rootfs/ $broot/bin
 cp -at rootfs/ $broot/lib
 cp -at rootfs/ $broot/usr
@@ -43,11 +35,11 @@ rm -fr rootfs/lib/udev
 rm -fr rootfs/usr/share/X11/xorg.conf.d
 ln -sf /run/resolv.conf rootfs/etc/resolv.conf
 
-cp -at rootfs/ $top/common/rootfs/*
-cp -at rootfs/ $top/minibase/out/sbin
+cp -at rootfs/ rootfs-dropin/*
+cp -at rootfs/ ../minibase/out/sbin
 
 rm -f rootfs/var/run; ln -sf /run rootfs/var/run
-$top/common/trimfw.sh rootfs
+./trimfw.sh rootfs
 
 rm -f rootfs.img
 
@@ -55,5 +47,5 @@ rm -f rootfs.img
 fakeroot sh <<END
 chown -h -R 0:0 rootfs
 chown -R 1:1 rootfs/home/user
-mkfs.ext4 -q -d rootfs rootfs.img $((size/2))
+mkfs.ext4 -q -d rootfs rootfs.img $((rootsize/2))
 END

@@ -1,6 +1,6 @@
 This is a special configuration meant for probing and debugging
 early (initrd) boot. There are no properly bootable images here.
-Qemu loads kernel/initrd and drops the user into busybox sh.
+Qemu loads kernel/initrd and drops the user into cmd.
 
 An empty whole.img is created only to have something backing the
 block device, and to let the kernel read the partition table.

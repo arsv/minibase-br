@@ -1,9 +1,0 @@
-initrd
-initrd.img
-bootfs
-bootfs.img
-kernel.img
-
-whole.img
-
-!dropin/*

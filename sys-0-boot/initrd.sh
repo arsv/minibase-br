@@ -5,15 +5,14 @@ set -e
 rm -fr initrd
 mkdir -p initrd/sbin
 
-cp -at initrd/ boot/*
+cp -at initrd/ initrd-dropin/*
 cp -at initrd/sbin/ ../minibase/out/sbin/*
 
-broot=../buildroot/output/target
-
-mkdir -p initrd/lib
-cp -at initrd/lib/ $broot/lib/*.so*
-cp -at initrd/     $broot/bin
-chmod 0755 initrd/bin/busybox
+mv -t initrd/sbin/ initrd/sbin/system/reboot
+rm -fr initrd/sbin/system
+rm -fr initrd/sbin/service
+rm -f initrd/sbin/wifi
+rm -f initrd/sbin/*ctl
 
 kver=4.12.10
 kmod=lib/modules/$kver

@@ -4,9 +4,9 @@ set -e
 
 source ./whole.map
 
-dd of=whole.img if=/dev/zero bs=512 count=$totalsize
+dd of=whole.img if=/dev/zero bs=512 count=$totalsize status=none
 
-sfdisk whole.img <<END
+sfdisk -q --no-reread whole.img <<END
 label: dos
 label-id: 0x11223344
 
