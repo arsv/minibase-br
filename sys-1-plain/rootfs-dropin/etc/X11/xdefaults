@@ -1,0 +1,5 @@
+URxvt*background:	#101010
+URxvt*foreground:	white
+URxvt*font:		-misc-fixed-medium-r-normal--18-120-100-100-c-90-iso8859-1
+URxvt*title:		X Unicode Terminal
+URxvt*scrollBar:	False

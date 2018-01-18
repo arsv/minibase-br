@@ -20,4 +20,4 @@ setenv WESTON_LAUNCHER_SOCK 3
 
 waitfor /dev/dri/card0
 
-exec /sbin/system/xorgvt :0 /usr/bin/fluxbox
+exec /sbin/system/xorgvt

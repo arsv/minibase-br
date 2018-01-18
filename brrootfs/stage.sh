@@ -96,7 +96,8 @@ rm -fr $misc/6x10*
 rm -fr $misc/6x12*
 rm -fr $misc/7x*
 rm -fr $misc/8x*
-rm -fr $misc/9x*
+rm -fr $misc/9x15*
+rm -fr $misc/10x*
 
 (cd $misc && mkfontdir || true)
 
