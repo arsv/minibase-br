@@ -1,0 +1,13 @@
+This is the base system. Rootfs is assembled here as a plaintext Ext4 image.
+Runtime system configuration (what to run on which VTs, services etc) comes
+from rootfs-dropin.
+
+Initrd is packed with block drivers, and uses findblk to locate the root
+device. Nothing fancy, and this is also what most non-encrypted installation
+using minibase would probably use.
+
+Bootloader (syslinux) is used to load kernel+initrd with either BIOS and UEFI.
+For UEFI only, it would probably be better to append initrd to EFI-stubbed
+kernel and let the firmware boot that directly, but there's Qemu which only
+really does BIOS well, and one of my test devices is BIOS-only as well.
+Syslinux loads kernel and initrd the same way in both cases.

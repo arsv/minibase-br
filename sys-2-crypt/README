@@ -1,0 +1,5 @@
+Enabling disk encryption requires initrd changes (passblk instead of findblk)
+and actually encrypting the rootfs image. The contents of rootfs remains the
+same as in sys-1-plain, no changes there, but it gets encrypted.
+
+Bootloader configuration is the same as well, but now with a different initrd.
