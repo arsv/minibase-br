@@ -1,26 +1,23 @@
 This repository contains build scripts and filesystem skeletons for
-bootable minibase images. There are two of them currently, encrypted
-and non-encrypted, both based on Buildroot. When built, the images
-will contain just enough to run Weston and (if the hardware is present)
+bootable minibase images based on Buildroot. When built, the images
+will contain just enough to run X, Weston and (if the hardware is there)
 connect to a wifi network.
 
 The images should be bootable with qemu as well as with reasonably recent
 x86_64 hardware with Intel graphics (and preferably iwlwifi wireless card).
 
-WARNING: buildroot takes lots of time and about 6GB of space to build.
-
 
 Pre-built images
 ~~~~~~~~~~~~~~~~
-Check Releases tab, and skip to Booting with qemu below.
-https://github.com/arsv/minibase-br/releases
+Non-encrypted system is available as a ready-to-run image.
 
-  sys-crypt is bootable image with encrypted rootfs.
-  sys-plain is bootable image with non-encrypted rootfs.
+  https://github.com/arsv/minibase-br/releases
 
-  unpacked.tar.gz contains complete initrd+bootfs+rootfs trees
-    for those who'd like to take a look at the files but do not
-    want to bother with mounting disk images.
+Download sys-plain.tar.bz2 and skip to "Booting with qemu" below.
+
+The other archive there, "prebuilt.tar.bz2", contains pre-populated
+buildroot/output/target and buildroot/output/images directories.
+Follow the build intructions below but skip the Buildroot part.
 
 
 System contents
@@ -34,12 +31,14 @@ The resulting images contain
 
 	* ~600KB musl (not needed for minibase)
 	* ~200KB dropbear
+
 	* about 30MB of weston and its dependencies
 	* about 7MB atop of that for xwayland support
+	* over 40MB of X
 
-During the boot, `weston` and `dropbear` are the first executables
+During the boot, `xorg`, and `dropbear` are the first executables
 to load libc. Everything else up to the point when the system can
-run `weston` is handled by statically linked minibase tools.
+run `xorg` is handled by statically linked minibase tools.
 
 
 Prerequisites
@@ -79,7 +78,8 @@ Update ./minibase and build it:
 	make
 	make install    # this will install into ./out
 
-Build the rest of the buildroot system:
+Build the rest of the buildroot system
+(skip this if working with the pre-built package):
 
 	cd buildroot
 	make BR2_EXTERNAL=../brvendor minibase_defconfig
@@ -87,12 +87,12 @@ Build the rest of the buildroot system:
 
 Assemble plaintext image:
 
-	cd sys-plain
+	cd sys-1-plain
 	make
 
 Assemble encrypted image:
 
-	cd sys-crypt
+	cd sys-2-crypt
 	make
 
 The first sys-crypt build will generate image encryptions keys which will
@@ -111,7 +111,7 @@ The kernel invokes initrd/init on startup. That script in turn execs into
 rootfs/sbin/system/start which is a script as well.
 
 The rootfs images are assembled by merging the contents of minibase/out,
-buildroot/output/target, and common/rootfs/. Initrds use minibase binaries
+buildroot/output/target, and rootfs-dropin. Initrds use minibase binaries
 and the contents of either sys-crypt/boot or sys-plain/boot.
 
 
@@ -119,19 +119,19 @@ Booting with qemu
 ~~~~~~~~~~~~~~~~~
 Run xqemu.sh in respective directories:
 
-	cd sys-crypt
+	cd sys-1-plain
 	./xqemu.sh
 
 The scripts will attempt to run qemu with -enable-kvm.
 
-The password for sys-crypt is "swordfish".
+The password for sys-2-crypt is "swordfish".
 
 
 Booting with real hardware
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 Write the image onto usb stick:
 
-	cd sys-crypt
+	cd sys-1-plain
 	dd if=whole.img of=/dev/sdb   # make sure it's the right device
 
 and try to persuade the box to boot from that.
@@ -151,10 +151,12 @@ Getting around the system
 The system is configured to be usable in qemu. VT switch combos are C-Fx,
 not C-A-Fx as usual.
 
-The system should boot into Weston running on VT3. Tap C-F4 to switch to
-another Weston instance (starting it if necessary) on VT4. Tap C-F2 for a
-root console. There's another root console on ttyS0 (serial). In qemu,
-press C-A-3 to access it.
+The system should boot into X/Fluxbox running on VT3. Tap C-F4 or C-F5
+to switch to one of the Weston instances (starting it if necessary).
+Tap C-F2 for a root console.
+
+There's another root console on ttyS0 (serial).
+In qemu, press C-A-3 to access it.
 
 Use `svctl` to query top-level supervisor:
 
@@ -186,7 +188,7 @@ These commands may come handy as well:
 	logcat                 # syslog contents
 	pstree                 # processes
 
-Tap C-Esc to bring up the control VT. Shift-R to reboot, Shift-P to poweroff.
+Tap C-Esc to bring up the greeter VT. Shift-R to reboot, Shift-P to poweroff.
 
 If running on real hardware, press C-Power to power the system off, and hold
 C-A-Del for about a second to reboot.
@@ -197,10 +199,8 @@ Troubleshooting and caveats
 Errors at "Waiting for devices" stage indicate lack of necessary modules,
 especially USB-related.
 
-Weston may pause on startup in qemu with sys-plain, showing its startup
-message. Try moving the VM mouse and/or tapping some keys. Not a minibase
-issue as far as I can tell. Does not happen with sys-crypt which requires
-some keypress events early to enter the passphrase.
+Weston may fail to start, showing blank screen and not reacting to inputs.
+No idea what causes this yet.
 
 Weston degrades into unusable mess when running in non-KVM qemu. Apparently
 the slow emulated CPU breaks some frame sync assumptions. Without KVM, it may
