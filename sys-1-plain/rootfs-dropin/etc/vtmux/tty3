@@ -20,4 +20,10 @@ setenv WESTON_LAUNCHER_SOCK 3
 
 waitfor /dev/dri/card0
 
+# Xorg config/udev code does not handle partially-initialized udev
+# very well, and is likely to lose some inputs at the very least.
+warn "Waiting for udev"
+waitfor /run/udev/control 10
+
+warn "Starting X server"
 exec /sbin/system/xorgvt
