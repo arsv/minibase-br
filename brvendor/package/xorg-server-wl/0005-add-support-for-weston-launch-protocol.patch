@@ -1,0 +1,835 @@
+From cf01740a70381950e11c03d4aaeccca84a3698c2 Mon Sep 17 00:00:00 2001
+From: Alex Suykov <alex.suykov@gmail.com>
+Date: Sun, 21 Jan 2018 02:19:22 +0200
+Subject: [PATCH xserver 5/5] add support for weston-launch protocol
+
+The choice between direct access, systemd-logind and weston-launch
+is made at configure time. Fallback to direct access is removed as
+it makes no sense for properly configured systems. Stub #define-s
+for logind calls got replaced with explicit #ifdefs at call sites.
+
+Signed-off-by: Alex Suykov <alex.suykov@gmail.com>
+---
+ config/config.c                             |   5 +
+ config/udev.c                               |   3 +
+ configure.ac                                |  50 +++--
+ hw/xfree86/common/xf86Events.c              |   7 +-
+ hw/xfree86/common/xf86Init.c                |   8 +
+ hw/xfree86/common/xf86Xinput.c              |  72 ++++---
+ hw/xfree86/common/xf86Xinput.h              |   1 +
+ hw/xfree86/common/xf86platformBus.c         |   4 +
+ hw/xfree86/os-support/linux/Makefile.am     |   4 +
+ hw/xfree86/os-support/linux/lnx_platform.c  |  50 ++---
+ hw/xfree86/os-support/linux/weston-launch.c | 314 ++++++++++++++++++++++++++++
+ include/dix-config.h.in                     |   3 +
+ include/systemd-logind.h                    |   7 -
+ include/weston-launch.h                     |   9 +
+ 14 files changed, 466 insertions(+), 71 deletions(-)
+ create mode 100644 hw/xfree86/os-support/linux/weston-launch.c
+ create mode 100644 include/weston-launch.h
+
+diff --git a/config/config.c b/config/config.c
+index fb60295ae..bfb0a450e 100644
+--- a/config/config.c
++++ b/config/config.c
+@@ -142,7 +142,12 @@ void
+ config_odev_free_attributes(struct OdevAttributes *attribs)
+ {
+     if (attribs->fd != -1)
++#ifdef SYSTEMD_LOGIND
+         systemd_logind_release_fd(attribs->major, attribs->minor, attribs->fd);
++#else
++        close(attribs->fd);
++#endif
++
+     free(attribs->path);
+     free(attribs->syspath);
+     free(attribs->busid);
+diff --git a/config/udev.c b/config/udev.c
+index c450ac39a..b837746e2 100644
+--- a/config/udev.c
++++ b/config/udev.c
+@@ -38,6 +38,7 @@
+ #include "os.h"
+ #include "globals.h"
+ #include "systemd-logind.h"
++#include "weston-launch.h"
+ 
+ #define UDEV_XKB_PROP_KEY "xkb"
+ 
+@@ -324,8 +325,10 @@ device_removed(struct udev_device *device)
+                    syspath, path);
+         config_udev_odev_setup_attribs(path, syspath, major(devnum),
+                                        minor(devnum), DeleteGPUDeviceRequest);
++#ifdef SYSTEMD_LOGIND
+         /* Retry vtenter after a drm node removal */
+         systemd_logind_vtenter();
++#endif
+         return;
+     }
+ #endif
+diff --git a/configure.ac b/configure.ac
+index 76c8baa6f..8fd1a14f6 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -644,6 +644,7 @@ AC_ARG_ENABLE(pciaccess, AS_HELP_STRING([--enable-pciaccess], [Build Xorg with p
+ AC_ARG_ENABLE(linux_acpi, AS_HELP_STRING([--disable-linux-acpi], [Disable building ACPI support on Linux (if available).]), [enable_linux_acpi=$enableval], [enable_linux_acpi=yes])
+ AC_ARG_ENABLE(linux_apm, AS_HELP_STRING([--disable-linux-apm], [Disable building APM support on Linux (if available).]), [enable_linux_apm=$enableval], [enable_linux_apm=yes])
+ AC_ARG_ENABLE(systemd-logind, AS_HELP_STRING([--enable-systemd-logind], [Build systemd-logind support (default: auto)]), [SYSTEMD_LOGIND=$enableval], [SYSTEMD_LOGIND=auto])
++AC_ARG_ENABLE(weston-launch, AS_HELP_STRING([--enable-weston-launch], [Enable support for weston-launch protocol (default: no)]), [WESTON_LAUNCH=$enableval], [WESTON_LAUNCH=no])
+ AC_ARG_ENABLE(suid-wrapper, AS_HELP_STRING([--enable-suid-wrapper], [Build suid-root wrapper for legacy driver support on rootless xserver systems (default: no)]), [SUID_WRAPPER=$enableval], [SUID_WRAPPER=no])
+ 
+ dnl DDXes.
+@@ -973,25 +974,46 @@ if test "x$CONFIG_HAL" = xyes; then
+ fi
+ AM_CONDITIONAL(CONFIG_HAL, [test "x$CONFIG_HAL" = xyes])
+ 
+-if test "x$SYSTEMD_LOGIND" = xauto; then
+-        if test "x$HAVE_DBUS" = xyes -a "x$CONFIG_UDEV" = xyes ; then
+-                SYSTEMD_LOGIND=yes
+-        else
++DEVMANAGER=none
++
++if test "x$WESTON_LAUNCH" = xauto; then
++	WESTON_LAUNCH=no
++fi
++if test "x$WESTON_LAUNCH" = xyes; then
++	if test "x$SYSTEMD_LOGIND" = xyes; then
++		AC_MSG_ERROR([cannot enable both systemd-logind and weston-launch.])
++	elif test "x$SYSTEMD_LOGIND" = xauto; then
+                 SYSTEMD_LOGIND=no
+-        fi
++	fi
++
++	AC_DEFINE(WESTON_LAUNCH, 1, [Enable weston-launch support code])
++
++	DEVMANAGER=weston
++fi
++
++if test "x$SYSTEMD_LOGIND" = xauto; then
++	if test "x$HAVE_DBUS" = xyes -a "x$CONFIG_UDEV" = xyes ; then
++		SYSTEMD_LOGIND=yes
++	else
++		SYSTEMD_LOGIND=no
++	fi
+ fi
+ if test "x$SYSTEMD_LOGIND" = xyes; then
+-        if ! test "x$HAVE_DBUS" = xyes; then
+-                AC_MSG_ERROR([systemd-logind requested, but D-Bus is not installed.])
+-        fi
+-        if ! test "x$CONFIG_UDEV" = xyes ; then
+-                AC_MSG_ERROR([systemd-logind is only supported in combination with udev configuration.])
+-        fi
++	if ! test "x$HAVE_DBUS" = xyes; then
++		AC_MSG_ERROR([systemd-logind requested, but D-Bus is not installed.])
++	fi
++	if ! test "x$CONFIG_UDEV" = xyes ; then
++		AC_MSG_ERROR([systemd-logind is only supported in combination with udev configuration.])
++	fi
++
++	AC_DEFINE(SYSTEMD_LOGIND, 1, [Enable logind support code])
+ 
+-        AC_DEFINE(SYSTEMD_LOGIND, 1, [Enable systemd-logind integration])
+-        NEED_DBUS="yes"
++	DEVMANAGER=logind
++	NEED_DBUS="yes"
+ fi
+-AM_CONDITIONAL(SYSTEMD_LOGIND, [test "x$SYSTEMD_LOGIND" = xyes])
++
++AM_CONDITIONAL(WESTON_LAUNCH,  [test "x$DEVMANAGER" = xweston])
++AM_CONDITIONAL(SYSTEMD_LOGIND, [test "x$DEVMANAGER" = xlogind])
+ 
+ if test "x$SUID_WRAPPER" = xyes; then
+         dnl This is a define so that if some platforms want to put the wrapper
+diff --git a/hw/xfree86/common/xf86Events.c b/hw/xfree86/common/xf86Events.c
+index 9a8f432a0..7751fdf96 100644
+--- a/hw/xfree86/common/xf86Events.c
++++ b/hw/xfree86/common/xf86Events.c
+@@ -580,9 +580,14 @@ xf86VTSwitch(void)
+      * if we use systemd_logind xf86VTEnter() gets called by systemd-logind.c
+      * once it has resumed all drm nodes.
+      */
++#ifdef SYSTEMD_LOGIND
++    if(systemd_logind_controls_session())
++        return;
++#endif
++
+     if (xf86VTOwner())
+         xf86VTLeave();
+-    else if (!systemd_logind_controls_session())
++    else
+         xf86VTEnter();
+ }
+ 
+diff --git a/hw/xfree86/common/xf86Init.c b/hw/xfree86/common/xf86Init.c
+index d59c224d5..9d828b5cb 100644
+--- a/hw/xfree86/common/xf86Init.c
++++ b/hw/xfree86/common/xf86Init.c
+@@ -55,6 +55,7 @@
+ #include "mi.h"
+ #include "dbus-core.h"
+ #include "systemd-logind.h"
++#include "weston-launch.h"
+ 
+ #include "loaderProcs.h"
+ #ifdef XFreeXDGA
+@@ -442,7 +443,12 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
+             DoShowOptions();
+ 
+         dbus_core_init();
++#ifdef SYSTEMD_LOGIND
+         systemd_logind_init();
++#endif
++#ifdef WESTON_LAUNCH
++        weston_launch_init();
++#endif
+ 
+         /* Do a general bus probe.  This will be a PCI probe for x86 platforms */
+         xf86BusProbe();
+@@ -1001,7 +1007,9 @@ ddxGiveUp(enum ExitCode error)
+     if (xorgHWOpenConsole)
+         xf86CloseConsole();
+ 
++#ifdef SYSTEMD_LOGIND
+     systemd_logind_fini();
++#endif
+     dbus_core_fini();
+ 
+     xf86CloseLog(error);
+diff --git a/hw/xfree86/common/xf86Xinput.c b/hw/xfree86/common/xf86Xinput.c
+index 136bf50ff..a6c9124bd 100644
+--- a/hw/xfree86/common/xf86Xinput.c
++++ b/hw/xfree86/common/xf86Xinput.c
+@@ -64,6 +64,7 @@
+ #include "extinit.h"
+ #include "loaderProcs.h"
+ #include "systemd-logind.h"
++#include "weston-launch.h"
+ 
+ #include "exevents.h"           /* AddInputDevice */
+ #include "exglobals.h"
+@@ -84,6 +85,7 @@
+ #include <sys/types.h>
+ #include <sys/stat.h>
+ #include <unistd.h>
++#include <fcntl.h>
+ #ifdef HAVE_SYS_SYSMACROS_H
+ #include <sys/sysmacros.h>
+ #endif
+@@ -788,7 +790,11 @@ xf86DeleteInput(InputInfoPtr pInp, int flags)
+     FreeInputAttributes(pInp->attrs);
+ 
+     if (pInp->flags & XI86_SERVER_FD)
++#ifdef SYSTEMD_LOGIND
+         systemd_logind_release_fd(pInp->major, pInp->minor, pInp->fd);
++#else
++        close(pInp->fd);
++#endif
+ 
+     /* Remove the entry from the list. */
+     if (pInp == xf86InputDevs)
+@@ -803,6 +809,9 @@ xf86DeleteInput(InputInfoPtr pInp, int flags)
+         /* Else the entry wasn't in the xf86InputDevs list (ignore this). */
+     }
+ 
++    if (pInp->path)
++        free(pInp->path);
++
+     free((void *) pInp->driver);
+     free((void *) pInp->name);
+     xf86optionListFree(pInp->options);
+@@ -874,9 +883,11 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
+ {
+     InputDriverPtr drv = NULL;
+     DeviceIntPtr dev = NULL;
+-    Bool paused;
+-    int rval;
++    int rval = 0, fd = -1, maj = 0, min = 0;
+     char *path = NULL;
++#ifdef SYSTEMD_LOGIND
++    Bool paused;
++#endif
+ 
+     drv = xf86LoadInputDriver(pInfo->driver);
+     if (!drv) {
+@@ -909,31 +920,44 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
+     }
+ 
+     path = xf86CheckStrOption(pInfo->options, "Device", NULL);
+-    if (path && pInfo->major == 0 && pInfo->minor == 0)
+-        xf86stat(path, &pInfo->major, &pInfo->minor);
+-
+-    if (path && (drv->capabilities & XI86_DRV_CAP_SERVER_FD)){
+-        int fd = systemd_logind_take_fd(pInfo->major, pInfo->minor,
+-                                        path, &paused);
+-        if (fd != -1) {
+-            if (paused) {
+-                /* Put on new_input_devices list for delayed probe */
+-                PausedInputDevicePtr new_device = xnfalloc(sizeof *new_device);
+-                new_device->pInfo = pInfo;
+-
+-                xorg_list_append(&new_device->node, &new_input_devices_list);
+-                systemd_logind_release_fd(pInfo->major, pInfo->minor, fd);
+-                free(path);
+-                return BadMatch;
+-            }
+-            pInfo->fd = fd;
+-            pInfo->flags |= XI86_SERVER_FD;
+-            pInfo->options = xf86ReplaceIntOption(pInfo->options, "fd", fd);
++
++    pInfo->path = path;
++    pInfo->major = maj;
++    pInfo->minor = min;
++
++    if (path)
++        xf86stat(path, &maj, &min);
++
++    if (drv->capabilities & XI86_DRV_CAP_SERVER_FD) {
++        if (!path)
++            goto unwind;
++
++#ifdef SYSTEMD_LOGIND
++        fd = systemd_logind_take_fd(maj, min, path, &paused);
++#elif defined(WESTON_LAUNCH)
++        fd = weston_launch_open(path);
++#else
++        fd = open(path, O_RDONLY);
++#endif
++        if (fd < 0)
++            goto unwind;
++
++#ifdef SYSTEMD_LOGIND
++        if (paused) {
++            /* Put on new_input_devices list for delayed probe */
++            PausedInputDevicePtr new_device = xnfalloc(sizeof *new_device);
++            new_device->pInfo = pInfo;
++
++            xorg_list_append(&new_device->node, &new_input_devices_list);
++            systemd_logind_release_fd(pInfo->major, pInfo->minor, fd);
++            return BadMatch;
+         }
++#endif
++        pInfo->fd = fd;
++        pInfo->flags |= XI86_SERVER_FD;
++        pInfo->options = xf86ReplaceIntOption(pInfo->options, "fd", fd);
+     }
+ 
+-    free(path);
+-
+     xf86AddInput(drv, pInfo);
+ 
+     input_lock();
+diff --git a/hw/xfree86/common/xf86Xinput.h b/hw/xfree86/common/xf86Xinput.h
+index 0024053c7..06681dba8 100644
+--- a/hw/xfree86/common/xf86Xinput.h
++++ b/hw/xfree86/common/xf86Xinput.h
+@@ -90,6 +90,7 @@ struct _InputInfoRec {
+     struct _InputInfoRec *next;
+     char *name;
+     char *driver;
++    char *path;
+ 
+     int flags;
+ 
+diff --git a/hw/xfree86/common/xf86platformBus.c b/hw/xfree86/common/xf86platformBus.c
+index 39fb1dd36..f358f4529 100644
+--- a/hw/xfree86/common/xf86platformBus.c
++++ b/hw/xfree86/common/xf86platformBus.c
+@@ -384,7 +384,11 @@ static Bool doPlatformProbe(struct xf86_platform_device *dev, DriverPtr drvp,
+     if (entity != -1) {
+         if ((dev->flags & XF86_PDEV_SERVER_FD) && (!drvp->driverFunc ||
+                 !drvp->driverFunc(NULL, SUPPORTS_SERVER_FDS, NULL))) {
++#ifdef SYSTEMD_LOGIND
+             systemd_logind_release_fd(dev->attribs->major, dev->attribs->minor, dev->attribs->fd);
++#else
++            close(dev->attribs->fd);
++#endif
+             dev->attribs->fd = -1;
+             dev->flags &= ~XF86_PDEV_SERVER_FD;
+         }
+diff --git a/hw/xfree86/os-support/linux/Makefile.am b/hw/xfree86/os-support/linux/Makefile.am
+index d8cb17777..135e13182 100644
+--- a/hw/xfree86/os-support/linux/Makefile.am
++++ b/hw/xfree86/os-support/linux/Makefile.am
+@@ -23,6 +23,10 @@ LOGIND_SRCS = systemd-logind.c
+ XORG_CFLAGS += $(DBUS_CFLAGS)
+ endif
+ 
++if WESTON_LAUNCH
++LOGIND_SRCS = weston-launch.c
++endif
++
+ liblinux_la_SOURCES = linux.h lnx_init.c lnx_video.c \
+                      lnx_agp.c lnx_kmod.c lnx_bell.c lnx_platform.c \
+ 		     $(srcdir)/../shared/VTsw_usl.c \
+diff --git a/hw/xfree86/os-support/linux/lnx_platform.c b/hw/xfree86/os-support/linux/lnx_platform.c
+index 1d145b362..26f34de09 100644
+--- a/hw/xfree86/os-support/linux/lnx_platform.c
++++ b/hw/xfree86/os-support/linux/lnx_platform.c
+@@ -19,6 +19,7 @@
+ 
+ #include "hotplug.h"
+ #include "systemd-logind.h"
++#include "weston-launch.h"
+ 
+ static Bool
+ get_drm_info(struct OdevAttributes *attribs, char *path, int delayed_index)
+@@ -26,30 +27,33 @@ get_drm_info(struct OdevAttributes *attribs, char *path, int delayed_index)
+     drmSetVersion sv;
+     drmVersionPtr v;
+     char *buf;
+-    int major, minor, fd;
+-    int err = 0;
+-    Bool paused, server_fd = FALSE;
++    int fd, err = 0;
+ 
+-    major = attribs->major;
+-    minor = attribs->minor;
++#ifdef SYSTEMD_LOGIND
++    Bool paused;
++    int major = attribs->major;
++    int minor = attribs->minor;
+ 
+     fd = systemd_logind_take_fd(major, minor, path, &paused);
+-    if (fd != -1) {
+-        if (paused) {
+-            LogMessage(X_ERROR,
+-                    "Error systemd-logind returned paused fd for drm node\n");
+-            systemd_logind_release_fd(major, minor, -1);
+-            return FALSE;
+-        }
+-        attribs->fd = fd;
+-        server_fd = TRUE;
+-    }
++#elif defined(WESTON_LAUNCH)
++    fd = weston_launch_open(path);
++#else
++    fd = open(path, O_RDWR | O_CLOEXEC);
++#endif
+ 
+     if (fd == -1)
+-        fd = open(path, O_RDWR, O_CLOEXEC);
++        return FALSE;
+ 
+-    if (fd == -1)
++#ifdef SYSTEMD_LOGIND
++    if (paused) {
++        LogMessage(X_ERROR,
++                "Error systemd-logind returned paused fd for drm node\n");
++        systemd_logind_release_fd(major, minor, fd);
+         return FALSE;
++    }
++#endif
++
++    attribs->fd = fd; /* caller will close attribs->fd whenever necessary */
+ 
+     sv.drm_di_major = 1;
+     sv.drm_di_minor = 4;
+@@ -60,7 +64,7 @@ get_drm_info(struct OdevAttributes *attribs, char *path, int delayed_index)
+     if (err) {
+         xf86Msg(X_ERROR, "%s: failed to set DRM interface version 1.4: %s\n",
+                 path, strerror(-err));
+-        goto out;
++        return FALSE;
+     }
+ 
+     /* for a delayed probe we've already added the device */
+@@ -69,8 +73,7 @@ get_drm_info(struct OdevAttributes *attribs, char *path, int delayed_index)
+             delayed_index = xf86_num_platform_devices - 1;
+     }
+ 
+-    if (server_fd)
+-        xf86_platform_devices[delayed_index].flags |= XF86_PDEV_SERVER_FD;
++    xf86_platform_devices[delayed_index].flags |= XF86_PDEV_SERVER_FD;
+ 
+     buf = drmGetBusid(fd);
+     xf86_platform_odev_attributes(delayed_index)->busid = XNFstrdup(buf);
+@@ -79,16 +82,13 @@ get_drm_info(struct OdevAttributes *attribs, char *path, int delayed_index)
+     v = drmGetVersion(fd);
+     if (!v) {
+         xf86Msg(X_ERROR, "%s: failed to query DRM version\n", path);
+-        goto out;
++        return FALSE;
+     }
+ 
+     xf86_platform_odev_attributes(delayed_index)->driver = XNFstrdup(v->name);
+     drmFreeVersion(v);
+ 
+-out:
+-    if (!server_fd)
+-        close(fd);
+-    return (err == 0);
++    return TRUE;
+ }
+ 
+ Bool
+diff --git a/hw/xfree86/os-support/linux/weston-launch.c b/hw/xfree86/os-support/linux/weston-launch.c
+new file mode 100644
+index 000000000..9cba0ad08
+--- /dev/null
++++ b/hw/xfree86/os-support/linux/weston-launch.c
+@@ -0,0 +1,314 @@
++#ifdef HAVE_XORG_CONFIG_H
++#include <xorg-config.h>
++#endif
++
++#include <sys/types.h>
++#include <sys/socket.h>
++#include <sys/stat.h>
++#ifdef HAVE_SYS_SYSMACROS_H
++#include <sys/sysmacros.h>
++#endif
++#include <linux/major.h>
++#include <string.h>
++#include <unistd.h>
++#include <fcntl.h>
++
++#include "os.h"
++#include "linux.h"
++#include "xf86.h"
++#include "xf86platformBus.h"
++#include "xf86Xinput.h"
++#include "xf86Priv.h"
++#include "globals.h"
++
++#include "weston-launch.h"
++
++#define WESTON_LAUNCHER_OPEN 0
++
++#define WESTON_LAUNCHER_ACTIVATE   1
++#define WESTON_LAUNCHER_DEACTIVATE 2
++
++#ifndef WESTON_LAUNCH
++# error Trying to build weston-launch.c but WESTON_LAUNCH is not defined
++#endif
++
++static int weston_launch_fd;
++
++struct weston_launcher_note {
++    int opcode;
++};
++
++struct weston_launcher_open {
++    int opcode;
++    int flags;
++    char path[0];
++};
++
++/* When switching out or returning to a VT, logind sends one notifications
++   (signal in their terms) for each managed device, and does not clearly
++   distinguish between inputs and drms. The X server code then needs to
++   match the dev against either drms (xf86_platform_devices) or inputs
++   (xf86InputDevs), track when all devices have been suspended/resumed.
++
++   In contrast, both weston-launch and vtmux send a single notification
++   when all devices have been disabled or resumed. The X server then only
++   needs to disable or enable all devices it knows about.
++
++   That's why the code here is much shorter than in dev_logind. */
++
++static void disable_drm_devices(void)
++{
++    struct xf86_platform_device *pdev = xf86_platform_devices;
++    struct xf86_platform_device *pend = pdev + xf86_num_platform_devices;
++
++    for (; pdev < pend; pdev++)
++            pdev->flags |= XF86_PDEV_PAUSED;
++}
++
++static void enable_drm_devices(void)
++{
++    struct xf86_platform_device *pdev = xf86_platform_devices;
++    struct xf86_platform_device *pend = pdev + xf86_num_platform_devices;
++
++    for (; pdev < pend; pdev++)
++            pdev->flags &= ~XF86_PDEV_PAUSED;
++}
++
++static void close_input_devices(void)
++{
++    InputInfoPtr pdev;
++
++    for (pdev = xf86InputDevs; pdev; pdev = pdev->next) {
++        if(!(pdev->flags & XI86_SERVER_FD))
++            continue; /* do we ever get non-server-managed devices here? */
++
++        xf86DisableInputDeviceForVTSwitch(pdev);
++
++        close(pdev->fd);
++        pdev->fd = -1;
++        pdev->options = xf86ReplaceIntOption(pdev->options, "fd", pdev->fd);
++    }
++}
++
++static void reopen_input_devices(void)
++{
++    InputInfoPtr pdev;
++
++    for (pdev = xf86InputDevs; pdev; pdev = pdev->next) {
++        if (pdev->fd >= 0)
++            continue;
++        if (!pdev->path)
++            continue;
++
++        pdev->fd = weston_launch_open(pdev->path);
++        pdev->options = xf86ReplaceIntOption(pdev->options, "fd", pdev->fd);
++
++        if(pdev->fd < 0)
++            continue;
++
++        xf86EnableInputDeviceForVTSwitch(pdev);
++    }
++
++    xf86InputEnableVTProbe();
++}
++
++static void activate_vt(void)
++{
++    enable_drm_devices();
++    reopen_input_devices();
++
++    xf86VTEnter();
++}
++
++static void deactivate_vt(void)
++{
++    disable_drm_devices();
++    close_input_devices();
++}
++
++static void socket_handler(int fd, int ready, void *data)
++{
++    int ret, opcode;
++    char buf[64];
++    struct weston_launcher_note* msg;
++
++    (void)data;
++    (void)ready;
++
++    ret = recv(fd, buf, sizeof(buf), MSG_DONTWAIT);
++
++    if(ret <= 0)
++        return;
++    if(ret < sizeof(*msg))
++        return; /* invalid packet? */
++
++    msg = (void*)buf;
++    opcode = msg->opcode;
++
++    if(opcode == WESTON_LAUNCHER_ACTIVATE)
++        activate_vt();
++    else if(opcode == WESTON_LAUNCHER_DEACTIVATE)
++        deactivate_vt();
++    else
++        LogMessage(X_INFO, "weston-launch unknown opcode %i\n", opcode);
++}
++
++static int set_manager_fd(void)
++{
++    char* fdstr;
++    int fd;
++
++    if ((fdstr = getenv("WESTON_LAUNCHER_SOCK")) == NULL) {
++        LogMessage(X_INFO, "weston-launch missing control socket fd\n");
++        return -1;
++    }
++
++    if ((fd = atoi(fdstr)) <= 2) {
++        LogMessage(X_INFO, "weston-launch invalid control fd %s\n", fdstr);
++        return -1;
++    }
++
++    weston_launch_fd = fd;
++
++    SetNotifyFd(fd, socket_handler, X_NOTIFY_READ, NULL);
++
++    return 0;
++}
++
++static int set_vt_globals(void)
++{
++    struct stat st;
++
++    if(fstat(0, &st) < 0) {
++        LogMessage(X_INFO, "weston-launch cannot stat fd 0\n");
++        return -1;
++    }
++
++    if(!S_ISCHR(st.st_mode) || major(st.st_rdev) != TTY_MAJOR) {
++        LogMessage(X_INFO, "weston-launch fd 0 is not a tty\n");
++        return -1;
++    }
++
++    xf86Info.vtno = minor(st.st_rdev);
++    xf86Info.dontVTSwitch = TRUE;
++    xf86Info.autoVTSwitch = FALSE;
++    xf86Info.consoleFd = 0;
++
++    serverGeneration = 2;
++
++    return 0;
++}
++
++int weston_launch_init(void)
++{
++    if(set_manager_fd())
++        return -1;
++    if(set_vt_globals())
++        return -1;
++
++    return 0;
++}
++
++static int send_open_request(int fd, const char* path)
++{
++    struct weston_launcher_open *req;
++    int len, ret;
++
++    if (path == NULL) {
++        LogMessage(X_INFO, "weston-launch open NULL\n");
++        return -1;
++    }
++
++    if (strstr(path, "mouse"))
++        return -1;
++
++    len = sizeof(*req) + strlen(path) + 1;
++    req = malloc(len);
++
++    if (!req)
++        return -1;
++
++    req->opcode = WESTON_LAUNCHER_OPEN;
++    req->flags = O_RDWR;
++    strcpy(req->path, path);
++
++    ret = send(fd, req, len, 0);
++
++    free(req);
++
++    if(ret < 0)
++        return -1;
++
++    return 0;
++}
++
++static int recv_open_reply(int fd)
++{
++    struct msghdr msg;
++    struct cmsghdr *cmsg;
++    struct iovec iov;
++    char control[CMSG_SPACE(sizeof(int))];
++    int ret, cmd;
++
++again:
++    memset(&msg, 0, sizeof msg);
++    iov.iov_base = &cmd;
++    iov.iov_len = sizeof cmd;
++    msg.msg_iov = &iov;
++    msg.msg_iovlen = 1;
++    msg.msg_control = control;
++    msg.msg_controllen = sizeof control;
++
++    ret = recvmsg(fd, &msg, MSG_CMSG_CLOEXEC);
++
++    if (ret < 0)
++        return -1;
++    if (ret < sizeof(int)) {
++        LogMessage(X_INFO, "weston-launch truncated reply\n");
++        return -1;
++    }
++
++    if (cmd < 0) {
++        LogMessage(X_INFO, "weston-launch open returns %i\n", cmd);
++        return cmd;
++    }
++
++    if (cmd > 0) {
++        if (cmd == WESTON_LAUNCHER_DEACTIVATE)
++            deactivate_vt();
++        LogMessage(X_INFO, "weston-launch interrupted request\n");
++        goto again;
++    }
++
++    cmsg = CMSG_FIRSTHDR(&msg);
++
++    if (!cmsg) {
++        LogMessage(X_INFO, "weston-launch got no ancillary data\n");
++        return -1;
++    }
++    if (cmsg->cmsg_level != SOL_SOCKET || cmsg->cmsg_type != SCM_RIGHTS) {
++        LogMessage(X_INFO, "weston-launch invalid ancillary data\n");
++        return -1;
++    }
++    if (cmsg->cmsg_len < sizeof(*cmsg) + sizeof(int)) {
++        LogMessage(X_INFO, "weston-launch malformed ancillary data\n");
++        return -1;
++    }
++
++    return *((int*)CMSG_DATA(cmsg));
++}
++
++int weston_launch_open(const char *path)
++{
++    int rfd, sfd = weston_launch_fd;
++
++    if(send_open_request(sfd, path))
++        return -1;
++
++    if((rfd = recv_open_reply(sfd)) < 0)
++        return -1;
++
++    fcntl(rfd, F_SETFL, O_NONBLOCK);
++
++    return rfd;
++}
+diff --git a/include/dix-config.h.in b/include/dix-config.h.in
+index d357910a6..723dd412b 100644
+--- a/include/dix-config.h.in
++++ b/include/dix-config.h.in
+@@ -454,6 +454,9 @@
+ /* Enable systemd-logind integration */
+ #undef SYSTEMD_LOGIND 1
+ 
++/* Enable weston-launch integration */
++#undef WESTON_LAUNCH 1
++
+ /* Have a monotonic clock from clock_gettime() */
+ #undef MONOTONIC_CLOCK
+ 
+diff --git a/include/systemd-logind.h b/include/systemd-logind.h
+index a4067d097..f348f0a44 100644
+--- a/include/systemd-logind.h
++++ b/include/systemd-logind.h
+@@ -33,13 +33,6 @@ int systemd_logind_take_fd(int major, int minor, const char *path, Bool *paus);
+ void systemd_logind_release_fd(int major, int minor, int fd);
+ int systemd_logind_controls_session(void);
+ void systemd_logind_vtenter(void);
+-#else
+-#define systemd_logind_init()
+-#define systemd_logind_fini()
+-#define systemd_logind_take_fd(major, minor, path, paus) -1
+-#define systemd_logind_release_fd(major, minor, fd) close(fd)
+-#define systemd_logind_controls_session() 0
+-#define systemd_logind_vtenter()
+ #endif
+ 
+ #endif
+diff --git a/include/weston-launch.h b/include/weston-launch.h
+new file mode 100644
+index 000000000..371d31eac
+--- /dev/null
++++ b/include/weston-launch.h
+@@ -0,0 +1,9 @@
++#ifndef WESTON_LAUNCH_H
++#define WESTON_LAUNCH_H
++
++#ifdef WESTON_LAUNCH
++int weston_launch_init(void);
++int weston_launch_open(const char *path);
++#endif
++
++#endif
+-- 
+2.15.1
+

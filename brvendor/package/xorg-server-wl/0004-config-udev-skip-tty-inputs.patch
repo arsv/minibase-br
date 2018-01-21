@@ -1,3 +1,19 @@
+From d617d08490458756d850630641f78d325c9f7084 Mon Sep 17 00:00:00 2001
+From: Alex Suykov <alex.suykov@gmail.com>
+Date: Sat, 20 Jan 2018 23:11:02 +0200
+Subject: [PATCH xserver 4/5] config/udev: skip tty inputs
+
+Attempts to probe every single TTY device in /dev clutter the logs.
+The code was apparently meant for serial Wacom tables, and makes
+little sense in modern Linux systems.
+
+Signed-off-by: Alex Suykov <alex.suykov@gmail.com>
+---
+ config/udev.c | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/config/udev.c b/config/udev.c
+index e198e8609..c450ac39a 100644
 --- a/config/udev.c
 +++ b/config/udev.c
 @@ -384,8 +384,6 @@ config_udev_pre_init(void)
@@ -17,3 +33,6 @@
  #ifdef CONFIG_UDEV_KMS
      udev_enumerate_add_match_subsystem(enumerate, "drm");
  #endif
+-- 
+2.15.1
+
