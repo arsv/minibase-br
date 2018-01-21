@@ -10,14 +10,14 @@ x86_64 hardware with Intel graphics (and preferably iwlwifi wireless card).
 Pre-built images
 ~~~~~~~~~~~~~~~~
 To try the system without going through the whole build process,
-download either sys-plain.tar.bz2 or sys-crypt.tar from
+download either sys-plain.tar.xz or sys-crypt.tar from
 
   https://github.com/arsv/minibase-br/releases
 
 and skip to "Booting with qemu" below.
 
 To see How the system is assembled without having to mess with
-Buildroot, download prebuilt.tar.bz2 and skip the buildroot part below.
+Buildroot, download prebuilt.tar.xz and skip the buildroot part below.
 
 
 System contents
@@ -39,6 +39,10 @@ The resulting images contain
 During the boot, `xorg`, and `dropbear` are the first executables
 to load libc. Everything else up to the point when the system can
 run `xorg` is handled by statically linked minibase tools.
+
+Current configuration does *not* include busybox and runs solely
+on minibase. The point of these images is to showcase minibase
+after all, not to be usable.
 
 
 Prerequisites
@@ -142,15 +146,31 @@ The system uses MBR ID 0x11223344 to find its boot media.
 
 Getting around the system
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-The system is configured to be usable in qemu. VT switch combos are C-Fx,
-not C-A-Fx as usual.
+The system is configured to be usable in qemu.
 
-The system should boot into X/Fluxbox running on VT3. Tap C-F4 or C-F5
-to switch to one of the Weston instances (starting it if necessary).
-Tap C-F2 for a root console.
+    C-F2: switch to VT2 (root shell)
+    C-F3: switch to VT3 (Xorg, default VT)
+    C-F4: switch to VT4 (Weston, 1st instance)
+    C-F5: switch to VT5 (Weston, 2nd instance)
+    C-Esc: bring up the greeter. Commands there:
+
+        Esc: return back
+	Shift-R: reboot
+	Shift-P: poweroff
+	Shift-S: sleep (real hw only, does nothing in qemu)
+	Shift-L: lock
+
+The system boots into X/Fluxbox running on VT3.
+Right-click on desktop and run urxvt.
 
 There's another root console on ttyS0 (serial).
-In qemu, press C-A-3 to access it.
+In qemu, press C-A-2 to access it, C-A-1 to go back.
+Some qemu versions may need C-A-3 not C-A-2.
+
+Inspect system state:
+
+	pstree                 # processes
+	logcat                 # syslog contents
 
 Use `svctl` to query top-level supervisor:
 
@@ -172,26 +192,24 @@ Use `wictl` to scan/connect to network:
 	wifi connect blackhole # ask passphrase and connect to a named AP
 
 The above only works if there are any wifi devices available.
-Wired interfaces may be queries and initialized using ifctl:
+Wired interfaces may be queried and initialized using ifctl:
 
 	ifctl                  # show networking devices
 	ifctl -a [dev]         # bring up and dhpc dev
 
-These commands may come handy as well:
-
-	logcat                 # syslog contents
-	pstree                 # processes
-
-Tap C-Esc to bring up the greeter VT. Shift-R to reboot, Shift-P to poweroff.
-
-If running on real hardware, press C-Power to power the system off, and hold
-C-A-Del for about a second to reboot.
+If running on real hardware, press C-Power to power the system off,
+and hold C-A-Del for about a second to reboot.
 
 
 Troubleshooting and caveats
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Errors at "Waiting for devices" stage indicate lack of necessary modules,
 especially USB-related.
+
+Emulated keyboard in some qemu versions (?) sends bogus scancodes for arrow
+keys. This can be verified using `inputs -r`. Does not seem to happen on real
+hardware. No fix atm, and it's probably not something that should be fixed in
+minibase.
 
 Weston degrades into unusable mess when running in non-KVM qemu. Apparently
 the slow emulated CPU breaks some frame sync assumptions. Without KVM, it may
