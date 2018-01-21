@@ -12,6 +12,7 @@ umask 0022
 
 cd $HOME
 
+groups control
 setgid $USER
 setuid $USER
 

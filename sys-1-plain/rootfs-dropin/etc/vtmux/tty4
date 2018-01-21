@@ -6,6 +6,7 @@ setenv SHELL /sbin/cmd
 
 cd $HOME
 
+groups control
 setgid $USER
 setuid $USER
 
