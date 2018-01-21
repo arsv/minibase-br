@@ -1,0 +1,243 @@
+From bcc84f6e033c5d1c60a67a52d4760c2f10aea27f Mon Sep 17 00:00:00 2001
+From: Alex Suykov <alex.suykov@gmail.com>
+Date: Sun, 21 Jan 2018 03:38:02 +0200
+Subject: [PATCH xserver 6/7] config/udev: split device_added for further work
+
+---
+ config/udev.c | 173 ++++++++++++++++++++++++++++++----------------------------
+ 1 file changed, 91 insertions(+), 82 deletions(-)
+
+diff --git a/config/udev.c b/config/udev.c
+index b837746e2..032890f23 100644
+--- a/config/udev.c
++++ b/config/udev.c
+@@ -89,57 +89,83 @@ check_seat(struct udev_device *udev_device)
+ }
+ 
+ static void
+-device_added(struct udev_device *udev_device)
++device_added_drm(struct udev_device *udev_device,
++                 const char* path, const char* syspath)
+ {
+-    const char *path, *name = NULL;
+-    char *config_info = NULL;
+-    const char *syspath;
+-    const char *tags_prop;
+-    const char *key, *value, *tmp;
+-    InputOption *input_options;
+-    InputAttributes attrs = { };
+-    DeviceIntPtr dev = NULL;
+-    struct udev_list_entry *set, *entry;
+-    struct udev_device *parent;
+-    int rc;
+-    dev_t devnum;
++    const char *sysname = udev_device_get_sysname(udev_device);
++    dev_t devnum = udev_device_get_devnum(udev_device);
+ 
+-    path = udev_device_get_devnode(udev_device);
+-
+-    syspath = udev_device_get_syspath(udev_device);
+-
+-    if (!path || !syspath)
++    if (strncmp(sysname, "card", 4) != 0)
+         return;
+ 
+-    if (!check_seat(udev_device))
++    /* Check for devices already added through xf86platformProbe() */
++    if (xf86_find_platform_device_by_devnum(major(devnum), minor(devnum)))
+         return;
+ 
+-    devnum = udev_device_get_devnum(udev_device);
++    LogMessage(X_INFO, "config/udev: Adding drm device (%s)\n", path);
+ 
+-#ifdef CONFIG_UDEV_KMS
+-    if (!strcmp(udev_device_get_subsystem(udev_device), "drm")) {
+-        const char *sysname = udev_device_get_sysname(udev_device);
+-
+-        if (strncmp(sysname, "card", 4) != 0)
+-            return;
++    config_udev_odev_setup_attribs(path, syspath, major(devnum),
++                                   minor(devnum), NewGPUDeviceRequest);
++}
+ 
+-        /* Check for devices already added through xf86platformProbe() */
+-        if (xf86_find_platform_device_by_devnum(major(devnum), minor(devnum)))
+-            return;
++static const char*
++query_input_name_ids(struct udev_device* parent, InputAttributes* attrs)
++{
++    const char *ppath = udev_device_get_devnode(parent);
++    const char *product = udev_device_get_property_value(parent, "PRODUCT");
++    const char *pnp_id = udev_device_get_sysattr_value(parent, "id");
++    unsigned int vendor, model;
++    const char* name = NULL;
+ 
+-        LogMessage(X_INFO, "config/udev: Adding drm device (%s)\n", path);
++    if ((name = udev_device_get_sysattr_value(parent, "name")))
++        LOG_SYSATTR(ppath, "name", name);
++    else if((name = udev_device_get_property_value(parent, "NAME")))
++        LOG_PROPERTY(ppath, "NAME", name);
++    if (name)
++        attrs->product = strdup(name);
++
++    /* construct USB ID in lowercase hex - "0000:ffff" */
++    if (product && sscanf(product, "%*x/%4x/%4x/%*x", &vendor, &model) == 2) {
++        char *usb_id;
++        if (asprintf(&usb_id, "%04x:%04x", vendor, model) == -1)
++            usb_id = NULL;
++        else
++            LOG_PROPERTY(ppath, "PRODUCT", product);
++        attrs->usb_id = usb_id;
++    }
+ 
+-        config_udev_odev_setup_attribs(path, syspath, major(devnum),
+-                                       minor(devnum), NewGPUDeviceRequest);
+-        return;
++    while ((parent = udev_device_get_parent(parent))) {
++        if ((pnp_id = udev_device_get_sysattr_value(parent, "id"))) {
++            attrs->pnp_id = strdup(pnp_id);
++            ppath = udev_device_get_devnode(parent);
++            LOG_SYSATTR(ppath, "id", pnp_id);
++            break;
++        }
+     }
+-#endif
++
++    return name;
++}
++
++static void
++device_added_input(struct udev_device *udev_device,
++                   const char* path, const char* syspath)
++{
++    const char *name = NULL;
++    char *config_info = NULL;
++    const char *tags_prop;
++    const char *key, *value, *tmp;
++    InputOption *input_options;
++    InputAttributes attrs = { };
++    DeviceIntPtr dev = NULL;
++    struct udev_list_entry *set, *entry;
++    int rc;
++
++    struct udev_device *parent = udev_device_get_parent(udev_device);
++    dev_t devnum = udev_device_get_devnum(udev_device);
+ 
+     value = udev_device_get_property_value(udev_device, "ID_INPUT");
+     if (value && !strcmp(value, "0")) {
+-        LogMessageVerb(X_INFO, 10,
+-                       "config/udev: ignoring device %s without "
+-                       "property ID_INPUT set\n", path);
++        LogMessageVerb(X_INFO, 10, "config/udev: ignoring device %s", path);
+         return;
+     }
+ 
+@@ -147,47 +173,11 @@ device_added(struct udev_device *udev_device)
+     if (!input_options)
+         return;
+ 
+-    parent = udev_device_get_parent(udev_device);
+-    if (parent) {
+-        const char *ppath = udev_device_get_devnode(parent);
+-        const char *product = udev_device_get_property_value(parent, "PRODUCT");
+-        const char *pnp_id = udev_device_get_sysattr_value(parent, "id");
+-        unsigned int usb_vendor, usb_model;
+-
+-        name = udev_device_get_sysattr_value(parent, "name");
+-        LOG_SYSATTR(ppath, "name", name);
+-        if (!name) {
+-            name = udev_device_get_property_value(parent, "NAME");
+-            LOG_PROPERTY(ppath, "NAME", name);
+-        }
+-
+-        /* construct USB ID in lowercase hex - "0000:ffff" */
+-        if (product &&
+-            sscanf(product, "%*x/%4x/%4x/%*x", &usb_vendor, &usb_model) == 2) {
+-            char *usb_id;
+-            if (asprintf(&usb_id, "%04x:%04x", usb_vendor, usb_model)
+-                == -1)
+-                usb_id = NULL;
+-            else
+-                LOG_PROPERTY(ppath, "PRODUCT", product);
+-            attrs.usb_id = usb_id;
+-        }
+-
+-        while (!pnp_id && (parent = udev_device_get_parent(parent))) {
+-            pnp_id = udev_device_get_sysattr_value(parent, "id");
+-            if (!pnp_id)
+-                continue;
+-
+-            attrs.pnp_id = strdup(pnp_id);
+-            ppath = udev_device_get_devnode(parent);
+-            LOG_SYSATTR(ppath, "id", pnp_id);
+-        }
+-
+-    }
++    if (parent)
++        name = query_input_name_ids(parent, &attrs);
+     if (!name)
+         name = "(unnamed)";
+-    else
+-        attrs.product = strdup(name);
++
+     input_options = input_option_new(input_options, "name", name);
+     input_options = input_option_new(input_options, "path", path);
+     input_options = input_option_new(input_options, "device", path);
+@@ -206,8 +196,7 @@ device_added(struct udev_device *udev_device)
+     }
+ 
+     if (device_is_duplicate(config_info)) {
+-        LogMessage(X_WARNING, "config/udev: device %s already added. "
+-                   "Ignoring.\n", name);
++        LogMessage(X_WARNING, "config/udev: device %s already added. ", name);
+         goto unwind;
+     }
+ 
+@@ -278,11 +267,12 @@ device_added(struct udev_device *udev_device)
+     if (ServerIsNotSeat0())
+         input_options = input_option_new(input_options, "GrabDevice", "on");
+ 
+-    LogMessage(X_INFO, "config/udev: Adding input device %s (%s)\n",
+-               name, path);
+     rc = NewInputDeviceRequest(input_options, &attrs, &dev);
++
+     if (rc != Success)
+-        goto unwind;
++        LogMessage(X_INFO, "config/udev: cannot add %s (%s)\n", name, path);
++    else
++        LogMessage(X_INFO, "config/udev: adding %s (%s)\n", name, path);
+ 
+  unwind:
+     free(config_info);
+@@ -302,8 +292,27 @@ device_added(struct udev_device *udev_device)
+         }
+         free(attrs.tags);
+     }
++}
+ 
+-    return;
++static void
++device_added(struct udev_device *udev_device)
++{
++    const char* path = udev_device_get_devnode(udev_device);
++    const char* syspath = udev_device_get_syspath(udev_device);
++    const char* subsystem = udev_device_get_subsystem(udev_device);
++
++    if (!subsystem || !path || !syspath)
++        return;
++
++    if (!check_seat(udev_device))
++        return;
++
++#ifdef CONFIG_UDEV_KMS
++    if (!strcmp(subsystem, "drm"))
++        return device_added_drm(udev_device, path, syspath);
++#endif
++    if (!strcmp(subsystem, "input"))
++        return device_added_input(udev_device, path, syspath);
+ }
+ 
+ static void
+-- 
+2.15.1
+

@@ -193,15 +193,6 @@ Troubleshooting and caveats
 Errors at "Waiting for devices" stage indicate lack of necessary modules,
 especially USB-related.
 
-Current setup starts much slower than it might have been otherwise because
-of racy interaction between udev and libudev code in X and Weston. A simple
-workaround for that is to wait for udev to settle before attempting to start
-vtmux. The wait is noticeable on real hardware. Fixing this properly would
-requre rewriting udev-dependent code in X and/or Weston, which is not
-a priority right now.
-The problem is much more pronounced in sys-plain becase the passphrase prompt
-in sys-crypt provides enough time for the kernel to sort out hw issues. 
-
 Weston degrades into unusable mess when running in non-KVM qemu. Apparently
 the slow emulated CPU breaks some frame sync assumptions. Without KVM, it may
 also take something like 5+ seconds to start, showing blank screen in process.
