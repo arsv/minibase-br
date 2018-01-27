@@ -142,11 +142,19 @@ cp -at $fls $tmp/bloe # default theme
 rm -fr $tmp
 unset fls tmp
 
-# Mesa installs three hard-links for a rather large file
-rm -f usr/lib/dri/kms_swrast_dri.so
-rm -f usr/lib/dri/virtio_gpu_dri.so
-ln -s swrast_dri.so usr/lib/dri/kms_swrast_dri.so
-ln -s swrast_dri.so usr/lib/dri/virtio_gpu_dri.so
+# Mesa builds two distinct .so libraries: one with all Gallium drivers
+# and one with all non-Gallium drivers. They get installed as hard links
+# but for this system it's much better to have them as symlinks instead.
+
+nongallium="usr/lib/dri/swrast_dri.so"
+
+for i in usr/lib/dri/*.so; do
+	if [ "$i" = "$nongallium" ]; then
+		continue
+	elif diff -q "$i" "$nongallium" >& /dev/null; then
+		ln -sf `basename $nongallium` $i
+	fi
+done
 
 # linux-firmware installs multiple versions of iwlwifi blobs because reasons.
 # We are running a fixed, reasonably recent kernel version so we only need

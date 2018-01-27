@@ -3,9 +3,9 @@
 MiB=2048   # 1MiB = 2048*512
 
 bootskip=32
-bootsize=$((6*MiB-bootskip))
+bootsize=$((5*MiB-bootskip))
 rootskip=$((bootskip+bootsize))
-rootsize=$((58*MiB))
+rootsize=$((59*MiB))
 totalsize=$((rootskip+rootsize))
 
 # vim: ft=sh
