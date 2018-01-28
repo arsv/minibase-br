@@ -11,10 +11,12 @@ rm -f sys-2-crypt.tar
 mkdir sys-2-crypt
 cp -at sys-2-crypt ../sys-2-crypt/whole.img 
 cp -at sys-2-crypt ../sys-2-crypt/xqemu.sh
+cp -at sys-2-crypt ../USAGE
 
 mkdir sys-1-plain
 cp -at sys-1-plain ../sys-1-plain/whole.img 
 cp -at sys-1-plain ../sys-1-plain/xqemu.sh
+cp -at sys-1-plain ../USAGE
 
 mkdir prebuilt
 git --git-dir ../.git archive HEAD | tar -x -C prebuilt --exclude _release
