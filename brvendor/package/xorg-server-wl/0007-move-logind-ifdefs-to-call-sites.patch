@@ -1,4 +1,4 @@
-From ab0f99e7166d967c0e9e00dbeff27a8d5290cd13 Mon Sep 17 00:00:00 2001
+From f6f3ca07b3560c987cc34ca80a960403c5bc2aed Mon Sep 17 00:00:00 2001
 From: Alex Suykov <alex.suykov@gmail.com>
 Date: Mon, 29 Jan 2018 11:12:19 +0200
 Subject: [PATCH xserver 7/8] move logind ifdefs to call sites

@@ -1,4 +1,4 @@
-From 1109cd8447faa28b2a40265358495ea4d92de48e Mon Sep 17 00:00:00 2001
+From 8ded9510734c01e4b8ca7d171205cbb6e9f770dd Mon Sep 17 00:00:00 2001
 From: Alex Suykov <alex.suykov@gmail.com>
 Date: Mon, 29 Jan 2018 13:15:15 +0200
 Subject: [PATCH xserver 8/8] add support for weston-launch protocol
@@ -13,14 +13,14 @@ Support for weston-launch must be explicitly requested at configure time.
 ---
  configure.ac                                |  50 +++--
  hw/xfree86/common/xf86Init.c                |   4 +
- hw/xfree86/common/xf86Xinput.c              |   8 +
+ hw/xfree86/common/xf86Xinput.c              |  11 +-
  hw/xfree86/common/xf86Xinput.h              |   1 +
  hw/xfree86/os-support/linux/Makefile.am     |   4 +
  hw/xfree86/os-support/linux/lnx_platform.c  |   3 +
  hw/xfree86/os-support/linux/weston-launch.c | 317 ++++++++++++++++++++++++++++
  include/dix-config.h.in                     |   3 +
  include/weston-launch.h                     |   9 +
- 9 files changed, 385 insertions(+), 14 deletions(-)
+ 9 files changed, 385 insertions(+), 17 deletions(-)
  create mode 100644 hw/xfree86/os-support/linux/weston-launch.c
  create mode 100644 include/weston-launch.h
 
@@ -120,7 +120,7 @@ index bad4cedde..9d828b5cb 100644
          /* Do a general bus probe.  This will be a PCI probe for x86 platforms */
          xf86BusProbe();
 diff --git a/hw/xfree86/common/xf86Xinput.c b/hw/xfree86/common/xf86Xinput.c
-index 4f0ab3661..f6bf1870c 100644
+index 4f0ab3661..b10003d80 100644
 --- a/hw/xfree86/common/xf86Xinput.c
 +++ b/hw/xfree86/common/xf86Xinput.c
 @@ -64,6 +64,7 @@
@@ -158,7 +158,12 @@ index 4f0ab3661..f6bf1870c 100644
  #else
          fd = open(path, O_RDONLY | O_CLOEXEC);
  #endif
-@@ -940,6 +947,7 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
+@@ -935,18 +942,16 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
+ 
+                 xorg_list_append(&new_device->node, &new_input_devices_list);
+                 systemd_logind_release_fd(pInfo->major, pInfo->minor, fd);
+-                free(path);
+                 return BadMatch;
              }
  #endif
              pInfo->fd = fd;
@@ -166,6 +171,13 @@ index 4f0ab3661..f6bf1870c 100644
              pInfo->flags |= XI86_SERVER_FD;
              pInfo->options = xf86ReplaceIntOption(pInfo->options, "fd", fd);
          }
+     }
+ 
+-    free(path);
+-
+     xf86AddInput(drv, pInfo);
+ 
+     input_lock();
 diff --git a/hw/xfree86/common/xf86Xinput.h b/hw/xfree86/common/xf86Xinput.h
 index 0024053c7..06681dba8 100644
 --- a/hw/xfree86/common/xf86Xinput.h
