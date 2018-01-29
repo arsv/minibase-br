@@ -24,14 +24,14 @@ The resulting images contain
 	
 	* ~3MB kernel
 	* ~6MB of kernel modules
-	* ~9MB of firmware blobs for iwlwifi
+	* ~7MB of firmware blobs for iwlwifi
 	* ~650KB of minibase tools
 
 	* ~600KB musl (not needed for minibase)
 	* ~200KB dropbear
 	* ~100KB of kilo and dash (needed for X)
 
-	* about 27MB of X, weston and their dependencies
+	* about 30MB of X, weston and their dependencies
 	  (hard to tell apart at this point)
 
 Current configuration does *not* include busybox and runs solely

@@ -146,13 +146,18 @@ unset fls tmp
 # and one with all non-Gallium drivers. They get installed as hard links
 # but for this system it's much better to have them as symlinks instead.
 
-nongallium="usr/lib/dri/swrast_dri.so"
+gallium="usr/lib/dri/kms_swrast_dri.so"
+nongallium="usr/lib/dri/i965_dri.so"
 
 for i in usr/lib/dri/*.so; do
 	if [ "$i" = "$nongallium" ]; then
 		continue
+	elif [ "$i" = "$gallium" ]; then
+		continue
 	elif diff -q "$i" "$nongallium" >& /dev/null; then
 		ln -sf `basename $nongallium` $i
+	elif diff -q "$i" "$gallium" >& /dev/null; then
+		ln -sf `basename $gallium` $i
 	fi
 done
 
