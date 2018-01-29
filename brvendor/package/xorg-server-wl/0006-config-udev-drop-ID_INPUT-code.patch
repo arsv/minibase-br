@@ -1,7 +1,7 @@
-From 6632dd84b3209379a05551ad6a2b1eb539495279 Mon Sep 17 00:00:00 2001
+From fefc980d1c009752df03dd018216eb1588d2f9e0 Mon Sep 17 00:00:00 2001
 From: Alex Suykov <alex.suykov@gmail.com>
 Date: Sun, 21 Jan 2018 04:05:14 +0200
-Subject: [PATCH xserver 7/7] config/udev: drop ID_INPUT code
+Subject: [PATCH xserver 6/8] config/udev: drop ID_INPUT code
 
 Query event bits directly instead.
 
@@ -15,12 +15,12 @@ Signed-off-by: Alex Suykov <alex.suykov@gmail.com>
  1 file changed, 47 insertions(+), 104 deletions(-)
 
 diff --git a/config/udev.c b/config/udev.c
-index 032890f23..c35e215f6 100644
+index 1a6021262..1d4b4687a 100644
 --- a/config/udev.c
 +++ b/config/udev.c
-@@ -40,19 +40,6 @@
+@@ -39,19 +39,6 @@
+ #include "globals.h"
  #include "systemd-logind.h"
- #include "weston-launch.h"
  
 -#define UDEV_XKB_PROP_KEY "xkb"
 -
@@ -38,7 +38,7 @@ index 032890f23..c35e215f6 100644
  static struct udev_monitor *udev_monitor;
  
  #ifdef CONFIG_UDEV_KMS
-@@ -109,7 +96,8 @@ device_added_drm(struct udev_device *udev_device,
+@@ -108,7 +95,8 @@ device_added_drm(struct udev_device *udev_device,
  }
  
  static const char*
@@ -48,7 +48,7 @@ index 032890f23..c35e215f6 100644
  {
      const char *ppath = udev_device_get_devnode(parent);
      const char *product = udev_device_get_property_value(parent, "PRODUCT");
-@@ -117,10 +105,10 @@ query_input_name_ids(struct udev_device* parent, InputAttributes* attrs)
+@@ -116,10 +104,10 @@ query_input_name_ids(struct udev_device* parent, InputAttributes* attrs)
      unsigned int vendor, model;
      const char* name = NULL;
  
@@ -63,7 +63,7 @@ index 032890f23..c35e215f6 100644
      if (name)
          attrs->product = strdup(name);
  
-@@ -130,7 +118,8 @@ query_input_name_ids(struct udev_device* parent, InputAttributes* attrs)
+@@ -129,7 +117,8 @@ query_input_name_ids(struct udev_device* parent, InputAttributes* attrs)
          if (asprintf(&usb_id, "%04x:%04x", vendor, model) == -1)
              usb_id = NULL;
          else
@@ -73,7 +73,7 @@ index 032890f23..c35e215f6 100644
          attrs->usb_id = usb_id;
      }
  
-@@ -138,7 +127,8 @@ query_input_name_ids(struct udev_device* parent, InputAttributes* attrs)
+@@ -137,7 +126,8 @@ query_input_name_ids(struct udev_device* parent, InputAttributes* attrs)
          if ((pnp_id = udev_device_get_sysattr_value(parent, "id"))) {
              attrs->pnp_id = strdup(pnp_id);
              ppath = udev_device_get_devnode(parent);
@@ -83,7 +83,7 @@ index 032890f23..c35e215f6 100644
              break;
          }
      }
-@@ -146,26 +136,50 @@ query_input_name_ids(struct udev_device* parent, InputAttributes* attrs)
+@@ -145,26 +135,50 @@ query_input_name_ids(struct udev_device* parent, InputAttributes* attrs)
      return name;
  }
  
@@ -140,7 +140,7 @@ index 032890f23..c35e215f6 100644
          return;
      }
  
-@@ -174,7 +188,9 @@ device_added_input(struct udev_device *udev_device,
+@@ -173,7 +187,9 @@ device_added_input(struct udev_device *udev_device,
          return;
  
      if (parent)
@@ -151,7 +151,7 @@ index 032890f23..c35e215f6 100644
      if (!name)
          name = "(unnamed)";
  
-@@ -186,80 +202,8 @@ device_added_input(struct udev_device *udev_device,
+@@ -185,80 +201,8 @@ device_added_input(struct udev_device *udev_device,
      if (path)
          attrs.device = strdup(path);
  
@@ -234,7 +234,7 @@ index 032890f23..c35e215f6 100644
  
      input_options = input_option_new(input_options, "config_info", config_info);
  
-@@ -270,11 +214,10 @@ device_added_input(struct udev_device *udev_device,
+@@ -269,11 +213,10 @@ device_added_input(struct udev_device *udev_device,
      rc = NewInputDeviceRequest(input_options, &attrs, &dev);
  
      if (rc != Success)
@@ -249,5 +249,5 @@ index 032890f23..c35e215f6 100644
      input_option_free_list(&input_options);
  
 -- 
-2.15.1
+2.16.1
 

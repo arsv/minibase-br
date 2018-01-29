@@ -1,7 +1,7 @@
-From d617d08490458756d850630641f78d325c9f7084 Mon Sep 17 00:00:00 2001
+From 4c039db50c68066f7f6298e634e12b4a9cadd6c2 Mon Sep 17 00:00:00 2001
 From: Alex Suykov <alex.suykov@gmail.com>
 Date: Sat, 20 Jan 2018 23:11:02 +0200
-Subject: [PATCH xserver 4/5] config/udev: skip tty inputs
+Subject: [PATCH xserver 4/8] config/udev: skip tty inputs
 
 Attempts to probe every single TTY device in /dev clutter the logs.
 The code was apparently meant for serial Wacom tables, and makes
@@ -34,5 +34,5 @@ index e198e8609..c450ac39a 100644
      udev_enumerate_add_match_subsystem(enumerate, "drm");
  #endif
 -- 
-2.15.1
+2.16.1
 

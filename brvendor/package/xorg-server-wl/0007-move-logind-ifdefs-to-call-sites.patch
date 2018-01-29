@@ -1,0 +1,304 @@
+From ab0f99e7166d967c0e9e00dbeff27a8d5290cd13 Mon Sep 17 00:00:00 2001
+From: Alex Suykov <alex.suykov@gmail.com>
+Date: Mon, 29 Jan 2018 11:12:19 +0200
+Subject: [PATCH xserver 7/8] move logind ifdefs to call sites
+
+The original implementation had systemd_logind*() declared either
+as prototypes or as inline stubs in the header. At the call sites,
+there were no explicit #ifdefs.
+
+This approach does not work well if there is any other option for
+accessing devices beside logind, including direct open. This patch
+moves #ifdefs to the call sites, leaving systemd_logind*() as just
+unconditional prototypes.
+
+Direct open becomes the second option for device access.
+In the original code, there was a fallback to direct open, but only
+for drm and not inputs, which makes no sense. Now it becomes a strict
+configure time choice, a server configured for logind will not try
+to open the devices directly.
+
+Signed-off-by: Alex Suykov <alex.suykov@gmail.com>
+---
+ config/config.c                            |  5 ++++
+ config/udev.c                              |  2 ++
+ hw/xfree86/common/xf86Events.c             |  7 ++++-
+ hw/xfree86/common/xf86Init.c               |  4 +++
+ hw/xfree86/common/xf86Xinput.c             | 23 +++++++++++----
+ hw/xfree86/common/xf86platformBus.c        |  4 +++
+ hw/xfree86/os-support/linux/lnx_platform.c | 47 ++++++++++++++----------------
+ include/systemd-logind.h                   |  7 -----
+ 8 files changed, 61 insertions(+), 38 deletions(-)
+
+diff --git a/config/config.c b/config/config.c
+index fb60295ae..bfb0a450e 100644
+--- a/config/config.c
++++ b/config/config.c
+@@ -142,7 +142,12 @@ void
+ config_odev_free_attributes(struct OdevAttributes *attribs)
+ {
+     if (attribs->fd != -1)
++#ifdef SYSTEMD_LOGIND
+         systemd_logind_release_fd(attribs->major, attribs->minor, attribs->fd);
++#else
++        close(attribs->fd);
++#endif
++
+     free(attribs->path);
+     free(attribs->syspath);
+     free(attribs->busid);
+diff --git a/config/udev.c b/config/udev.c
+index 1d4b4687a..451624915 100644
+--- a/config/udev.c
++++ b/config/udev.c
+@@ -276,8 +276,10 @@ device_removed(struct udev_device *device)
+                    syspath, path);
+         config_udev_odev_setup_attribs(path, syspath, major(devnum),
+                                        minor(devnum), DeleteGPUDeviceRequest);
++#ifdef SYSTEMD_LOGIND
+         /* Retry vtenter after a drm node removal */
+         systemd_logind_vtenter();
++#endif
+         return;
+     }
+ #endif
+diff --git a/hw/xfree86/common/xf86Events.c b/hw/xfree86/common/xf86Events.c
+index 9a8f432a0..7751fdf96 100644
+--- a/hw/xfree86/common/xf86Events.c
++++ b/hw/xfree86/common/xf86Events.c
+@@ -580,9 +580,14 @@ xf86VTSwitch(void)
+      * if we use systemd_logind xf86VTEnter() gets called by systemd-logind.c
+      * once it has resumed all drm nodes.
+      */
++#ifdef SYSTEMD_LOGIND
++    if(systemd_logind_controls_session())
++        return;
++#endif
++
+     if (xf86VTOwner())
+         xf86VTLeave();
+-    else if (!systemd_logind_controls_session())
++    else
+         xf86VTEnter();
+ }
+ 
+diff --git a/hw/xfree86/common/xf86Init.c b/hw/xfree86/common/xf86Init.c
+index d59c224d5..bad4cedde 100644
+--- a/hw/xfree86/common/xf86Init.c
++++ b/hw/xfree86/common/xf86Init.c
+@@ -442,7 +442,9 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
+             DoShowOptions();
+ 
+         dbus_core_init();
++#ifdef SYSTEMD_LOGIND
+         systemd_logind_init();
++#endif
+ 
+         /* Do a general bus probe.  This will be a PCI probe for x86 platforms */
+         xf86BusProbe();
+@@ -1001,7 +1003,9 @@ ddxGiveUp(enum ExitCode error)
+     if (xorgHWOpenConsole)
+         xf86CloseConsole();
+ 
++#ifdef SYSTEMD_LOGIND
+     systemd_logind_fini();
++#endif
+     dbus_core_fini();
+ 
+     xf86CloseLog(error);
+diff --git a/hw/xfree86/common/xf86Xinput.c b/hw/xfree86/common/xf86Xinput.c
+index 136bf50ff..4f0ab3661 100644
+--- a/hw/xfree86/common/xf86Xinput.c
++++ b/hw/xfree86/common/xf86Xinput.c
+@@ -84,6 +84,7 @@
+ #include <sys/types.h>
+ #include <sys/stat.h>
+ #include <unistd.h>
++#include <fcntl.h>
+ #ifdef HAVE_SYS_SYSMACROS_H
+ #include <sys/sysmacros.h>
+ #endif
+@@ -788,7 +789,11 @@ xf86DeleteInput(InputInfoPtr pInp, int flags)
+     FreeInputAttributes(pInp->attrs);
+ 
+     if (pInp->flags & XI86_SERVER_FD)
++#ifdef SYSTEMD_LOGIND
+         systemd_logind_release_fd(pInp->major, pInp->minor, pInp->fd);
++#else
++        close(pInp->fd);
++#endif
+ 
+     /* Remove the entry from the list. */
+     if (pInp == xf86InputDevs)
+@@ -874,9 +879,11 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
+ {
+     InputDriverPtr drv = NULL;
+     DeviceIntPtr dev = NULL;
+-    Bool paused;
+-    int rval;
++    int fd, rval = 0;
+     char *path = NULL;
++#ifdef SYSTEMD_LOGIND
++    Bool paused;
++#endif
+ 
+     drv = xf86LoadInputDriver(pInfo->driver);
+     if (!drv) {
+@@ -909,13 +916,18 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
+     }
+ 
+     path = xf86CheckStrOption(pInfo->options, "Device", NULL);
++
+     if (path && pInfo->major == 0 && pInfo->minor == 0)
+         xf86stat(path, &pInfo->major, &pInfo->minor);
+ 
+-    if (path && (drv->capabilities & XI86_DRV_CAP_SERVER_FD)){
+-        int fd = systemd_logind_take_fd(pInfo->major, pInfo->minor,
+-                                        path, &paused);
++    if (path && drv->capabilities & XI86_DRV_CAP_SERVER_FD){
++#ifdef SYSTEMD_LOGIND
++        fd = systemd_logind_take_fd(pInfo->major, pInfo->minor, path, &paused);
++#else
++        fd = open(path, O_RDONLY | O_CLOEXEC);
++#endif
+         if (fd != -1) {
++#ifdef SYSTEMD_LOGIND
+             if (paused) {
+                 /* Put on new_input_devices list for delayed probe */
+                 PausedInputDevicePtr new_device = xnfalloc(sizeof *new_device);
+@@ -926,6 +938,7 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
+                 free(path);
+                 return BadMatch;
+             }
++#endif
+             pInfo->fd = fd;
+             pInfo->flags |= XI86_SERVER_FD;
+             pInfo->options = xf86ReplaceIntOption(pInfo->options, "fd", fd);
+diff --git a/hw/xfree86/common/xf86platformBus.c b/hw/xfree86/common/xf86platformBus.c
+index 39fb1dd36..f358f4529 100644
+--- a/hw/xfree86/common/xf86platformBus.c
++++ b/hw/xfree86/common/xf86platformBus.c
+@@ -384,7 +384,11 @@ static Bool doPlatformProbe(struct xf86_platform_device *dev, DriverPtr drvp,
+     if (entity != -1) {
+         if ((dev->flags & XF86_PDEV_SERVER_FD) && (!drvp->driverFunc ||
+                 !drvp->driverFunc(NULL, SUPPORTS_SERVER_FDS, NULL))) {
++#ifdef SYSTEMD_LOGIND
+             systemd_logind_release_fd(dev->attribs->major, dev->attribs->minor, dev->attribs->fd);
++#else
++            close(dev->attribs->fd);
++#endif
+             dev->attribs->fd = -1;
+             dev->flags &= ~XF86_PDEV_SERVER_FD;
+         }
+diff --git a/hw/xfree86/os-support/linux/lnx_platform.c b/hw/xfree86/os-support/linux/lnx_platform.c
+index 1d145b362..fe1af0049 100644
+--- a/hw/xfree86/os-support/linux/lnx_platform.c
++++ b/hw/xfree86/os-support/linux/lnx_platform.c
+@@ -26,30 +26,31 @@ get_drm_info(struct OdevAttributes *attribs, char *path, int delayed_index)
+     drmSetVersion sv;
+     drmVersionPtr v;
+     char *buf;
+-    int major, minor, fd;
+-    int err = 0;
+-    Bool paused, server_fd = FALSE;
++    int fd, err = 0;
+ 
+-    major = attribs->major;
+-    minor = attribs->minor;
++#ifdef SYSTEMD_LOGIND
++    Bool paused;
++    int major = attribs->major;
++    int minor = attribs->minor;
+ 
+     fd = systemd_logind_take_fd(major, minor, path, &paused);
+-    if (fd != -1) {
+-        if (paused) {
+-            LogMessage(X_ERROR,
+-                    "Error systemd-logind returned paused fd for drm node\n");
+-            systemd_logind_release_fd(major, minor, -1);
+-            return FALSE;
+-        }
+-        attribs->fd = fd;
+-        server_fd = TRUE;
+-    }
++#else
++    fd = open(path, O_RDWR | O_CLOEXEC);
++#endif
+ 
+     if (fd == -1)
+-        fd = open(path, O_RDWR, O_CLOEXEC);
++        return FALSE;
+ 
+-    if (fd == -1)
++#ifdef SYSTEMD_LOGIND
++    if (paused) {
++        LogMessage(X_ERROR,
++                "Error systemd-logind returned paused fd for drm node\n");
++        systemd_logind_release_fd(major, minor, fd);
+         return FALSE;
++    }
++#endif
++
++    attribs->fd = fd; /* caller will close attribs->fd whenever necessary */
+ 
+     sv.drm_di_major = 1;
+     sv.drm_di_minor = 4;
+@@ -60,7 +61,7 @@ get_drm_info(struct OdevAttributes *attribs, char *path, int delayed_index)
+     if (err) {
+         xf86Msg(X_ERROR, "%s: failed to set DRM interface version 1.4: %s\n",
+                 path, strerror(-err));
+-        goto out;
++        return FALSE;
+     }
+ 
+     /* for a delayed probe we've already added the device */
+@@ -69,8 +70,7 @@ get_drm_info(struct OdevAttributes *attribs, char *path, int delayed_index)
+             delayed_index = xf86_num_platform_devices - 1;
+     }
+ 
+-    if (server_fd)
+-        xf86_platform_devices[delayed_index].flags |= XF86_PDEV_SERVER_FD;
++    xf86_platform_devices[delayed_index].flags |= XF86_PDEV_SERVER_FD;
+ 
+     buf = drmGetBusid(fd);
+     xf86_platform_odev_attributes(delayed_index)->busid = XNFstrdup(buf);
+@@ -79,16 +79,13 @@ get_drm_info(struct OdevAttributes *attribs, char *path, int delayed_index)
+     v = drmGetVersion(fd);
+     if (!v) {
+         xf86Msg(X_ERROR, "%s: failed to query DRM version\n", path);
+-        goto out;
++        return FALSE;
+     }
+ 
+     xf86_platform_odev_attributes(delayed_index)->driver = XNFstrdup(v->name);
+     drmFreeVersion(v);
+ 
+-out:
+-    if (!server_fd)
+-        close(fd);
+-    return (err == 0);
++    return TRUE;
+ }
+ 
+ Bool
+diff --git a/include/systemd-logind.h b/include/systemd-logind.h
+index a4067d097..f348f0a44 100644
+--- a/include/systemd-logind.h
++++ b/include/systemd-logind.h
+@@ -33,13 +33,6 @@ int systemd_logind_take_fd(int major, int minor, const char *path, Bool *paus);
+ void systemd_logind_release_fd(int major, int minor, int fd);
+ int systemd_logind_controls_session(void);
+ void systemd_logind_vtenter(void);
+-#else
+-#define systemd_logind_init()
+-#define systemd_logind_fini()
+-#define systemd_logind_take_fd(major, minor, path, paus) -1
+-#define systemd_logind_release_fd(major, minor, fd) close(fd)
+-#define systemd_logind_controls_session() 0
+-#define systemd_logind_vtenter()
+ #endif
+ 
+ #endif
+-- 
+2.16.1
+

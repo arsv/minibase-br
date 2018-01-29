@@ -1,17 +1,17 @@
-From bcc84f6e033c5d1c60a67a52d4760c2f10aea27f Mon Sep 17 00:00:00 2001
+From 13adad70608f0936a49f640904698386d5f6580f Mon Sep 17 00:00:00 2001
 From: Alex Suykov <alex.suykov@gmail.com>
 Date: Sun, 21 Jan 2018 03:38:02 +0200
-Subject: [PATCH xserver 6/7] config/udev: split device_added for further work
+Subject: [PATCH xserver 5/8] config/udev: split device_added for further work
 
 ---
  config/udev.c | 173 ++++++++++++++++++++++++++++++----------------------------
  1 file changed, 91 insertions(+), 82 deletions(-)
 
 diff --git a/config/udev.c b/config/udev.c
-index b837746e2..032890f23 100644
+index c450ac39a..1a6021262 100644
 --- a/config/udev.c
 +++ b/config/udev.c
-@@ -89,57 +89,83 @@ check_seat(struct udev_device *udev_device)
+@@ -88,57 +88,83 @@ check_seat(struct udev_device *udev_device)
  }
  
  static void
@@ -132,7 +132,7 @@ index b837746e2..032890f23 100644
          return;
      }
  
-@@ -147,47 +173,11 @@ device_added(struct udev_device *udev_device)
+@@ -146,47 +172,11 @@ device_added(struct udev_device *udev_device)
      if (!input_options)
          return;
  
@@ -183,7 +183,7 @@ index b837746e2..032890f23 100644
      input_options = input_option_new(input_options, "name", name);
      input_options = input_option_new(input_options, "path", path);
      input_options = input_option_new(input_options, "device", path);
-@@ -206,8 +196,7 @@ device_added(struct udev_device *udev_device)
+@@ -205,8 +195,7 @@ device_added(struct udev_device *udev_device)
      }
  
      if (device_is_duplicate(config_info)) {
@@ -193,7 +193,7 @@ index b837746e2..032890f23 100644
          goto unwind;
      }
  
-@@ -278,11 +267,12 @@ device_added(struct udev_device *udev_device)
+@@ -277,11 +266,12 @@ device_added(struct udev_device *udev_device)
      if (ServerIsNotSeat0())
          input_options = input_option_new(input_options, "GrabDevice", "on");
  
@@ -209,7 +209,7 @@ index b837746e2..032890f23 100644
  
   unwind:
      free(config_info);
-@@ -302,8 +292,27 @@ device_added(struct udev_device *udev_device)
+@@ -301,8 +291,27 @@ device_added(struct udev_device *udev_device)
          }
          free(attrs.tags);
      }
@@ -239,5 +239,5 @@ index b837746e2..032890f23 100644
  
  static void
 -- 
-2.15.1
+2.16.1
 

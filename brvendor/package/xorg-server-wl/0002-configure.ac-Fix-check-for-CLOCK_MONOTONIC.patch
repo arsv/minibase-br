@@ -1,11 +1,14 @@
+From f9b34a13becc090b5db8584973b7e2860497843c Mon Sep 17 00:00:00 2001
+From: Bernd Kuhls <bernd.kuhls@t-online.de>
+Date: Sat, 20 Jan 2018 23:07:09 +0200
+Subject: [PATCH xserver 2/8] configure.ac: Fix check for CLOCK_MONOTONIC
+
 Discover monotonic clock using compile-time check
 
 monotonic clock check does not work when cross-compiling.
 
 Upstream-Status: Denied [Does not work on OpenBSD]
 Signed-off-by: Jussi Kukkonen <jussi.kukkonen@intel.com>
-
-
 
 Original patch follows:
 
@@ -31,10 +34,10 @@ Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
  1 file changed, 7 insertions(+), 10 deletions(-)
 
 diff --git a/configure.ac b/configure.ac
-index f7ab48c..26e85cd 100644
+index 88d687d56..76c8baa6f 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -1048,19 +1048,16 @@ if ! test "x$have_clock_gettime" = xno; then
+@@ -1052,19 +1052,16 @@ if ! test "x$have_clock_gettime" = xno; then
          CPPFLAGS="$CPPFLAGS -D_POSIX_C_SOURCE=200112L"
      fi
  
@@ -62,5 +65,5 @@ index f7ab48c..26e85cd 100644
      LIBS="$LIBS_SAVE"
      CPPFLAGS="$CPPFLAGS_SAVE"
 -- 
-2.1.4
+2.16.1
 
