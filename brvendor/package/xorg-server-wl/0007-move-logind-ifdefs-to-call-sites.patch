@@ -1,4 +1,4 @@
-From f6f3ca07b3560c987cc34ca80a960403c5bc2aed Mon Sep 17 00:00:00 2001
+From 81cb0cf611ccde805ae2678f6fad8f22fcf39576 Mon Sep 17 00:00:00 2001
 From: Alex Suykov <alex.suykov@gmail.com>
 Date: Mon, 29 Jan 2018 11:12:19 +0200
 Subject: [PATCH xserver 7/8] move logind ifdefs to call sites
@@ -22,13 +22,13 @@ Signed-off-by: Alex Suykov <alex.suykov@gmail.com>
 ---
  config/config.c                            |  5 ++++
  config/udev.c                              |  2 ++
- hw/xfree86/common/xf86Events.c             |  7 ++++-
+ hw/xfree86/common/xf86Events.c             |  5 ++++
  hw/xfree86/common/xf86Init.c               |  4 +++
  hw/xfree86/common/xf86Xinput.c             | 23 +++++++++++----
  hw/xfree86/common/xf86platformBus.c        |  4 +++
  hw/xfree86/os-support/linux/lnx_platform.c | 47 ++++++++++++++----------------
  include/systemd-logind.h                   |  7 -----
- 8 files changed, 61 insertions(+), 38 deletions(-)
+ 8 files changed, 60 insertions(+), 37 deletions(-)
 
 diff --git a/config/config.c b/config/config.c
 index fb60295ae..bfb0a450e 100644
@@ -63,25 +63,23 @@ index 1d4b4687a..451624915 100644
      }
  #endif
 diff --git a/hw/xfree86/common/xf86Events.c b/hw/xfree86/common/xf86Events.c
-index 9a8f432a0..7751fdf96 100644
+index 9a8f432a0..e5b5c63ad 100644
 --- a/hw/xfree86/common/xf86Events.c
 +++ b/hw/xfree86/common/xf86Events.c
-@@ -580,9 +580,14 @@ xf86VTSwitch(void)
-      * if we use systemd_logind xf86VTEnter() gets called by systemd-logind.c
-      * once it has resumed all drm nodes.
+@@ -582,8 +582,13 @@ xf86VTSwitch(void)
       */
-+#ifdef SYSTEMD_LOGIND
-+    if(systemd_logind_controls_session())
-+        return;
-+#endif
-+
      if (xf86VTOwner())
          xf86VTLeave();
--    else if (!systemd_logind_controls_session())
-+    else
++#ifdef SYSTEMD_LOGIND
+     else if (!systemd_logind_controls_session())
          xf86VTEnter();
++#else
++    else
++        xf86VTEnter();
++#endif
  }
  
+ /* Input handler registration */
 diff --git a/hw/xfree86/common/xf86Init.c b/hw/xfree86/common/xf86Init.c
 index d59c224d5..bad4cedde 100644
 --- a/hw/xfree86/common/xf86Init.c

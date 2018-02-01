@@ -1,4 +1,4 @@
-From 8ded9510734c01e4b8ca7d171205cbb6e9f770dd Mon Sep 17 00:00:00 2001
+From 83594bd4476c71752b28ad4b261459571ae26773 Mon Sep 17 00:00:00 2001
 From: Alex Suykov <alex.suykov@gmail.com>
 Date: Mon, 29 Jan 2018 13:15:15 +0200
 Subject: [PATCH xserver 8/8] add support for weston-launch protocol
@@ -7,25 +7,26 @@ As a device access protocol, it is similar to but simpler than
 the dbus based one that logind uses.
 
 Unlike logind, weston-launch needs device name to re-open the device.
-To handle this, path was added to InputInfoRec.
+To handle this, path field was added to InputInfoRec.
 
 Support for weston-launch must be explicitly requested at configure time.
 ---
- configure.ac                                |  50 +++--
+ configure.ac                                |  15 ++
+ hw/xfree86/common/xf86Events.c              |   2 +-
  hw/xfree86/common/xf86Init.c                |   4 +
  hw/xfree86/common/xf86Xinput.c              |  11 +-
- hw/xfree86/common/xf86Xinput.h              |   1 +
+ hw/xfree86/common/xf86Xinput.h              |   2 +
  hw/xfree86/os-support/linux/Makefile.am     |   4 +
  hw/xfree86/os-support/linux/lnx_platform.c  |   3 +
- hw/xfree86/os-support/linux/weston-launch.c | 317 ++++++++++++++++++++++++++++
+ hw/xfree86/os-support/linux/weston-launch.c | 316 ++++++++++++++++++++++++++++
  include/dix-config.h.in                     |   3 +
  include/weston-launch.h                     |   9 +
- 9 files changed, 385 insertions(+), 17 deletions(-)
+ 10 files changed, 365 insertions(+), 4 deletions(-)
  create mode 100644 hw/xfree86/os-support/linux/weston-launch.c
  create mode 100644 include/weston-launch.h
 
 diff --git a/configure.ac b/configure.ac
-index 76c8baa6f..8fd1a14f6 100644
+index 76c8baa6f..416d2d7af 100644
 --- a/configure.ac
 +++ b/configure.ac
 @@ -644,6 +644,7 @@ AC_ARG_ENABLE(pciaccess, AS_HELP_STRING([--enable-pciaccess], [Build Xorg with p
@@ -36,16 +37,10 @@ index 76c8baa6f..8fd1a14f6 100644
  AC_ARG_ENABLE(suid-wrapper, AS_HELP_STRING([--enable-suid-wrapper], [Build suid-root wrapper for legacy driver support on rootless xserver systems (default: no)]), [SUID_WRAPPER=$enableval], [SUID_WRAPPER=no])
  
  dnl DDXes.
-@@ -973,25 +974,46 @@ if test "x$CONFIG_HAL" = xyes; then
+@@ -973,6 +974,20 @@ if test "x$CONFIG_HAL" = xyes; then
  fi
  AM_CONDITIONAL(CONFIG_HAL, [test "x$CONFIG_HAL" = xyes])
  
--if test "x$SYSTEMD_LOGIND" = xauto; then
--        if test "x$HAVE_DBUS" = xyes -a "x$CONFIG_UDEV" = xyes ; then
--                SYSTEMD_LOGIND=yes
--        else
-+DEVMANAGER=none
-+
 +if test "x$WESTON_LAUNCH" = xauto; then
 +	WESTON_LAUNCH=no
 +fi
@@ -53,50 +48,29 @@ index 76c8baa6f..8fd1a14f6 100644
 +	if test "x$SYSTEMD_LOGIND" = xyes; then
 +		AC_MSG_ERROR([cannot enable both systemd-logind and weston-launch.])
 +	elif test "x$SYSTEMD_LOGIND" = xauto; then
-                 SYSTEMD_LOGIND=no
--        fi
++		SYSTEMD_LOGIND=no
 +	fi
 +
 +	AC_DEFINE(WESTON_LAUNCH, 1, [Enable weston-launch support code])
-+
-+	DEVMANAGER=weston
 +fi
++AM_CONDITIONAL(WESTON_LAUNCH,  [test "x$WESTON_LAUNCH" = xyes])
 +
-+if test "x$SYSTEMD_LOGIND" = xauto; then
-+	if test "x$HAVE_DBUS" = xyes -a "x$CONFIG_UDEV" = xyes ; then
-+		SYSTEMD_LOGIND=yes
-+	else
-+		SYSTEMD_LOGIND=no
-+	fi
- fi
- if test "x$SYSTEMD_LOGIND" = xyes; then
--        if ! test "x$HAVE_DBUS" = xyes; then
--                AC_MSG_ERROR([systemd-logind requested, but D-Bus is not installed.])
--        fi
--        if ! test "x$CONFIG_UDEV" = xyes ; then
--                AC_MSG_ERROR([systemd-logind is only supported in combination with udev configuration.])
--        fi
-+	if ! test "x$HAVE_DBUS" = xyes; then
-+		AC_MSG_ERROR([systemd-logind requested, but D-Bus is not installed.])
-+	fi
-+	if ! test "x$CONFIG_UDEV" = xyes ; then
-+		AC_MSG_ERROR([systemd-logind is only supported in combination with udev configuration.])
-+	fi
-+
-+	AC_DEFINE(SYSTEMD_LOGIND, 1, [Enable logind support code])
- 
--        AC_DEFINE(SYSTEMD_LOGIND, 1, [Enable systemd-logind integration])
--        NEED_DBUS="yes"
-+	DEVMANAGER=logind
-+	NEED_DBUS="yes"
- fi
--AM_CONDITIONAL(SYSTEMD_LOGIND, [test "x$SYSTEMD_LOGIND" = xyes])
-+
-+AM_CONDITIONAL(WESTON_LAUNCH,  [test "x$DEVMANAGER" = xweston])
-+AM_CONDITIONAL(SYSTEMD_LOGIND, [test "x$DEVMANAGER" = xlogind])
- 
- if test "x$SUID_WRAPPER" = xyes; then
-         dnl This is a define so that if some platforms want to put the wrapper
+ if test "x$SYSTEMD_LOGIND" = xauto; then
+         if test "x$HAVE_DBUS" = xyes -a "x$CONFIG_UDEV" = xyes ; then
+                 SYSTEMD_LOGIND=yes
+diff --git a/hw/xfree86/common/xf86Events.c b/hw/xfree86/common/xf86Events.c
+index e5b5c63ad..d7217d9e1 100644
+--- a/hw/xfree86/common/xf86Events.c
++++ b/hw/xfree86/common/xf86Events.c
+@@ -585,7 +585,7 @@ xf86VTSwitch(void)
+ #ifdef SYSTEMD_LOGIND
+     else if (!systemd_logind_controls_session())
+         xf86VTEnter();
+-#else
++#elif !defined(WESTON_LAUNCH)
+     else
+         xf86VTEnter();
+ #endif
 diff --git a/hw/xfree86/common/xf86Init.c b/hw/xfree86/common/xf86Init.c
 index bad4cedde..9d828b5cb 100644
 --- a/hw/xfree86/common/xf86Init.c
@@ -179,17 +153,18 @@ index 4f0ab3661..b10003d80 100644
  
      input_lock();
 diff --git a/hw/xfree86/common/xf86Xinput.h b/hw/xfree86/common/xf86Xinput.h
-index 0024053c7..06681dba8 100644
+index 0024053c7..4700557b1 100644
 --- a/hw/xfree86/common/xf86Xinput.h
 +++ b/hw/xfree86/common/xf86Xinput.h
-@@ -90,6 +90,7 @@ struct _InputInfoRec {
-     struct _InputInfoRec *next;
-     char *name;
-     char *driver;
+@@ -111,6 +111,8 @@ struct _InputInfoRec {
+     void *module;
+     XF86OptionPtr options;
+     InputAttributes *attrs;
++
 +    char *path;
+ };
  
-     int flags;
- 
+ /* xf86Globals.c */
 diff --git a/hw/xfree86/os-support/linux/Makefile.am b/hw/xfree86/os-support/linux/Makefile.am
 index d8cb17777..135e13182 100644
 --- a/hw/xfree86/os-support/linux/Makefile.am
@@ -228,10 +203,10 @@ index fe1af0049..26f34de09 100644
  #endif
 diff --git a/hw/xfree86/os-support/linux/weston-launch.c b/hw/xfree86/os-support/linux/weston-launch.c
 new file mode 100644
-index 000000000..97624e849
+index 000000000..6e9476d66
 --- /dev/null
 +++ b/hw/xfree86/os-support/linux/weston-launch.c
-@@ -0,0 +1,317 @@
+@@ -0,0 +1,316 @@
 +#ifdef HAVE_XORG_CONFIG_H
 +#include <xorg-config.h>
 +#endif
@@ -311,7 +286,7 @@ index 000000000..97624e849
 +    InputInfoPtr pdev;
 +
 +    for (pdev = xf86InputDevs; pdev; pdev = pdev->next) {
-+        if(!(pdev->flags & XI86_SERVER_FD))
++        if (!(pdev->flags & XI86_SERVER_FD))
 +            continue; /* do we ever get non-server-managed devices here? */
 +
 +        xf86DisableInputDeviceForVTSwitch(pdev);
@@ -335,21 +310,20 @@ index 000000000..97624e849
 +        pdev->fd = weston_launch_open(pdev->path);
 +        pdev->options = xf86ReplaceIntOption(pdev->options, "fd", pdev->fd);
 +
-+        if(pdev->fd < 0)
++        if (pdev->fd < 0)
 +            continue;
 +
 +        xf86EnableInputDeviceForVTSwitch(pdev);
 +    }
-+
-+    xf86InputEnableVTProbe();
 +}
 +
 +static void activate_vt(void)
 +{
 +    enable_drm_devices();
-+    reopen_input_devices();
-+
 +    xf86VTEnter();
++
++    reopen_input_devices();
++    xf86InputEnableVTProbe();
 +}
 +
 +static void deactivate_vt(void)
@@ -369,17 +343,17 @@ index 000000000..97624e849
 +
 +    ret = recv(fd, buf, sizeof(buf), MSG_DONTWAIT);
 +
-+    if(ret <= 0)
++    if (ret <= 0)
 +        return;
-+    if(ret < sizeof(*msg))
++    if (ret < sizeof(*msg))
 +        return; /* invalid packet? */
 +
 +    msg = (void*)buf;
 +    opcode = msg->opcode;
 +
-+    if(opcode == WESTON_LAUNCHER_ACTIVATE)
++    if (opcode == WESTON_LAUNCHER_ACTIVATE)
 +        activate_vt();
-+    else if(opcode == WESTON_LAUNCHER_DEACTIVATE)
++    else if (opcode == WESTON_LAUNCHER_DEACTIVATE)
 +        deactivate_vt();
 +    else
 +        LogMessage(X_INFO, "weston-launch unknown opcode %i\n", opcode);
@@ -416,12 +390,12 @@ index 000000000..97624e849
 +{
 +    struct stat st;
 +
-+    if(fstat(0, &st) < 0) {
++    if (fstat(0, &st) < 0) {
 +        LogMessage(X_INFO, "weston-launch cannot stat fd 0\n");
 +        return -1;
 +    }
 +
-+    if(!S_ISCHR(st.st_mode) || major(st.st_rdev) != TTY_MAJOR) {
++    if (!S_ISCHR(st.st_mode) || major(st.st_rdev) != TTY_MAJOR) {
 +        LogMessage(X_INFO, "weston-launch fd 0 is not a tty\n");
 +        return -1;
 +    }
@@ -438,9 +412,9 @@ index 000000000..97624e849
 +
 +int weston_launch_init(void)
 +{
-+    if(set_manager_fd())
++    if (set_manager_fd())
 +        return -1;
-+    if(set_vt_globals())
++    if (set_vt_globals())
 +        return -1;
 +
 +    return 0;
@@ -473,7 +447,7 @@ index 000000000..97624e849
 +
 +    free(req);
 +
-+    if(ret < 0)
++    if (ret < 0)
 +        return -1;
 +
 +    return 0;
@@ -539,10 +513,10 @@ index 000000000..97624e849
 +{
 +    int rfd, sfd = weston_launch_fd;
 +
-+    if(send_open_request(sfd, path))
++    if (send_open_request(sfd, path))
 +        return -1;
 +
-+    if((rfd = recv_open_reply(sfd)) < 0)
++    if ((rfd = recv_open_reply(sfd)) < 0)
 +        return -1;
 +
 +    fcntl(rfd, F_SETFL, O_NONBLOCK);
