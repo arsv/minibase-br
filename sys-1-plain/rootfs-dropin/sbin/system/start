@@ -15,4 +15,6 @@ umask 0002
 
 mkdir /run/ctrl
 
+prctl no-new-privs
+
 exec /sbin/service/super /sbin/system/reboot
