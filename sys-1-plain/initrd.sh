@@ -21,7 +21,7 @@ cp -at initrd/ initrd-dropin/*
 
 kver=4.12.10
 kmod=lib/modules/$kver
-broot=../buildroot/output/target
+broot=../brrootfs
 
 msrc=$broot/lib/modules/$kver/kernel/drivers
 mdst=initrd/lib/modules/$kver/kernel/drivers
