@@ -66,7 +66,7 @@ unpack it and rename the directory into ./buildroot.
 
 # If the host system runs glibc-2.26:
 #
-#	cp brvendor/package/flex/0002*.patch \
+#	cp brvendor/patches/flex/0002*.patch \
 #	   buildroot/package/flex/
 #
 # otherwise the build will fail.
