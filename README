@@ -3,9 +3,6 @@ bootable minibase images based on Buildroot. When built, the images
 will contain just enough to run X, Weston and (if the hardware is there)
 connect to a wifi network.
 
-The images should be bootable with qemu as well as with reasonably recent
-x86_64 hardware with Intel or AMD graphics.
-
 
 Pre-built images
 ~~~~~~~~~~~~~~~~
@@ -14,8 +11,8 @@ download either sys-plain.tar.xz or sys-crypt.tar from
 
   https://github.com/arsv/minibase-br/releases
 
-To see How the system is assembled without having to mess with
-Buildroot, download prebuilt.tar.xz and skip the buildroot part below.
+To see how the system is assembled download prebuilt.tar.xz and follow
+the build instructions below.
 
 
 System contents
@@ -59,28 +56,11 @@ on the host distro to provide it.
 
 How to build the images
 ~~~~~~~~~~~~~~~~~~~~~~~
-(Skip until "Update ./minibase ..." if working with prebuilt.tar.bz2)
+Download and unpack prebuilt.tar.bz2.
 
-Download https://buildroot.org/downloads/buildroot-2017.08.tar.bz2,
-unpack it and rename the directory into ./buildroot.
-
-# If the host system runs glibc-2.26:
-#
-#	cp brvendor/patches/flex/0002*.patch \
-#	   buildroot/package/flex/
-#
-# otherwise the build will fail.
-
-Build the system:
-
-	cd buildroot
-	make BR2_EXTERNAL=../brvendor minibase_defconfig
-	make            # this will take lots of time
-
-Stage resulting rootfs:
-
-	cd brrootfs
-	./stage.sh
+# This tarball was built from buildroot-2017.08.tar.bz2, using configuration
+# in ./brvendor (as BR2_EXTERNAL). It can be re-built, but the process is quite
+# long and completely irrelevant for the purpose of showcasing minibase.
 
 Update ./minibase and build it:
 
@@ -189,7 +169,7 @@ The above only works if there are any wifi devices available.
 Wired interfaces may be queried and initialized using ifctl:
 
 	ifctl                  # show networking devices
-	ifctl -a [dev]         # bring up and dhpc dev
+	ifctl [dev] auto-dhcp  # bring up and dhpc $dev
 
 If running on real hardware, press C-Power to power the system off,
 and hold C-A-Del for about a second to reboot.

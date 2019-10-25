@@ -1,15 +1,14 @@
 #!/sbin/msh
 
-onexit /sbin/reboot
+onexit /fail
 
 /sbin/kmount -vc /dev
 reopen /dev/console
-
 /sbin/kmount -vc /sys
 /sbin/kmount -vc /proc
 
-/sbin/runwith /sbin/findblk /sbin/udevmod -s
+/sbin/devinit
 
 /sbin/kmount /root /dev/mapper/root ext4
 
-exec /sbin/switchroot /root /sbin/system/start
+exec /sbin/switchroot /root /etc/boot/start

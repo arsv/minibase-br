@@ -11,9 +11,10 @@ mkdir -p $sdst
 cp -at $sdst $ssrc/system/findblk
 cp -at $sdst $ssrc/system/switchroot
 cp -at $sdst $ssrc/system/reboot
-cp -at $sdst $ssrc/service/udevmod
+cp -at $sdst $ssrc/system/devinit
+cp -at $sdst $ssrc/cmd
+cp -at $sdst $ssrc/ls
 cp -at $sdst $ssrc/modprobe
-cp -at $sdst $ssrc/runwith
 cp -at $sdst $ssrc/kmount
 cp -at $sdst $ssrc/msh
 
@@ -33,7 +34,6 @@ cp -at $mdst $msrc/ata
 cp -at $mdst $msrc/usb
 
 cp -at initrd/lib/modules/$kver $broot/lib/modules/$kver/modules.{builtin,order}
-depmod -b initrd $kver
-rm initrd/lib/modules/$kver/*.bin
+../minibase/out/sbin/depmod initrd/lib/modules/$kver
 
 (cd initrd && find . | cpio -oH newc) | gzip -c > initrd.img

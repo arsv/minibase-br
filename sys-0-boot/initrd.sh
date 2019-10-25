@@ -16,7 +16,7 @@ rm -f initrd/sbin/*ctl
 
 kver=4.12.10
 kmod=lib/modules/$kver
-broot=../buildroot/output/target
+broot=../brrootfs
 
 msrc=$broot/lib/modules/$kver/kernel/drivers
 mdst=initrd/lib/modules/$kver/kernel/drivers
@@ -27,7 +27,6 @@ cp -at $mdst $msrc/block
 cp -at $mdst $msrc/ata
 cp -at $mdst $msrc/usb
 
-depmod -b initrd $kver
-rm initrd/lib/modules/$kver/*.bin
+../minibase/out/sbin/depmod initrd/lib/modules/$kver
 
 (cd initrd && find . | cpio -oH newc) | gzip -c > initrd.img

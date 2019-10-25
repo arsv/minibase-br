@@ -1,0 +1,3 @@
+#!/sbin/msh
+
+/sbin/findblk mbr:11223344 1:boot 2:root

@@ -1,0 +1,9 @@
+#!/sbin/msh
+
+echo "initrd failed"
+
+setenv PATH /sbin
+
+/sbin/cmd
+
+/sbin/reboot

@@ -19,12 +19,6 @@ mkdir -p rootfs/home/root
 
 rm -f rootfs/var/run; ln -sf /run rootfs/var/run
 
-#broot=../brrootfs
-
-#if [ -d ../buildroot/output/target ]; then
-#	(cd $broot && ./stage.sh)
-#fi
-
 cp -at rootfs/ ../brrootfs/{bin,etc,lib,usr}
 cp -at rootfs/ ../minibase/out/sbin
 cp -at rootfs/ rootfs-dropin/*

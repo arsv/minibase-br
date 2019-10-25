@@ -1,6 +1,6 @@
 #!/sbin/msh
 
-onexit /sbin/system/reboot
+onexit /etc/boot/failure
 
 setenv PATH /bin:/sbin:/usr/bin
 
@@ -17,4 +17,4 @@ mkdir /run/ctrl
 
 prctl no-new-privs
 
-exec /sbin/service/super /sbin/system/reboot
+exec /sbin/service/svhub

@@ -7,12 +7,15 @@ sdst=initrd/sbin
 ssrc=../minibase/out/sbin
 
 mkdir -p $sdst
+cp -at $sdst $ssrc/system/devinit
 cp -at $sdst $ssrc/system/passblk
+cp -at $sdst $ssrc/system/findblk
 cp -at $sdst $ssrc/system/switchroot
 cp -at $sdst $ssrc/system/reboot
-cp -at $sdst $ssrc/service/udevmod
+cp -at $sdst $ssrc/cmd
+cp -at $sdst $ssrc/dmesg
+cp -at $sdst $ssrc/ls
 cp -at $sdst $ssrc/modprobe
-cp -at $sdst $ssrc/runwith
 cp -at $sdst $ssrc/kmount
 cp -at $sdst $ssrc/msh
 
@@ -41,7 +44,12 @@ cp -at initrd/lib/modules/$kver $broot/lib/modules/$kver/modules.{builtin,order}
 depmod -b initrd $kver
 rm initrd/lib/modules/$kver/*.bin
 
+if [ ! -f dekeys.nkw ]; then
+	echo "Run ./rootfs.sh first" >&2
+	exit 1
+fi
+
 mkdir -p initrd/etc
-cp dekeys.nkw initrd/etc/dekeys
+cp dekeys.nkw initrd/etc/keys.bin
 
 (cd initrd && find . | cpio -oH newc) | gzip -c > initrd.img

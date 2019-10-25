@@ -4,3 +4,5 @@ Qemu loads kernel/initrd and drops the user into cmd.
 
 An empty whole.img is created only to have something backing the
 block device, and to let the kernel read the partition table.
+
+Type `exit` (or press C-d) to stop the VM.

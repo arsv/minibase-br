@@ -1,5 +1,5 @@
 suhub: *
 vtmux: control
-super: control
+svhub: control
 ifmon: control
 wsupp: control
