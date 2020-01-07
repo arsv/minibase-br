@@ -1,0 +1,3 @@
+#!/base/bin/msh
+
+exec /base/bin/svcctl poweroff

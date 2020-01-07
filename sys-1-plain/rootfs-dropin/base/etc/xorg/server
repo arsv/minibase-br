@@ -1,0 +1,5 @@
+#!/base/bin/msh
+
+getenv DISPLAY
+
+exec /usr/bin/Xorg $DISPLAY

@@ -10,8 +10,8 @@ if [ ! -f $plain/rootfs.img ]; then
 fi
 
 if [ ! -f dekeys.nkw ]; then
-	../minibase/out/sbin/dektool create dekeys.nkw
+	../minibase/out/bin/dektool create dekeys.nkw
 fi
 
 echo "Encrypting root filesystem"
-../minibase/out/sbin/deitool $plain/rootfs.img rootfs.img dekeys.nkw
+../minibase/out/bin/deitool $plain/rootfs.img rootfs.img dekeys.nkw

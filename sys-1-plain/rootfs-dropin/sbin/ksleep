@@ -1,3 +1,0 @@
-#!/sbin/msh
-
-write "mem" /sys/power/state

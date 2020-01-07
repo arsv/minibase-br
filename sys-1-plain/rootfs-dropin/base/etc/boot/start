@@ -1,0 +1,22 @@
+#!/base/bin/msh
+
+onexit /base/etc/boot/failure
+
+setenv PATH /bin:/sbin:/usr/bin
+
+run /base/bin/kmount -vc /dev/pts
+run /base/bin/kmount -vc /run
+run /base/bin/kmount -vc /mnt
+run /base/bin/kmount -vc /tmp
+# remount root read-write
+run /base/bin/kmount -e /
+
+mkdir /run/ctrl 0750 0:1
+mkdir /run/user 0700 1:1
+mkdir /tmp/user 0700 1:1
+
+umask 0002
+
+prctl no-new-privs
+
+exec /base/sys/svchub

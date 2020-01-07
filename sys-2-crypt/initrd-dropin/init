@@ -1,25 +1,24 @@
-#!/sbin/msh
+#!/bin/msh
 
-onexit /fail
+onexit /bin/reboot
 
-/sbin/kmount -vc /dev
+run /bin/kmount -vc /dev
 reopen /dev/console
-/sbin/kmount -vc /sys
-/sbin/kmount -vc /proc
+run /bin/kmount -vc /sys
+run /bin/kmount -vc /proc
 
-/sbin/modprobe crypto_engine
-/sbin/modprobe crypto_user
-/sbin/modprobe cryptd
-/sbin/modprobe cbc
-/sbin/modprobe ecb
-/sbin/modprobe xts
-/sbin/modprobe dm-crypt
+run /bin/modprobe crypto_engine
+run /bin/modprobe crypto_user
+run /bin/modprobe cryptd
+run /bin/modprobe cbc
+run /bin/modprobe ecb
+run /bin/modprobe xts
+run /bin/modprobe dm-crypt
 
-/sbin/devinit
+run /bin/devinit /etc
 
 waitfor /dev/mapper/control
 
-/sbin/passblk /etc/keys.bin root
-/sbin/kmount /root /dev/mapper/root ext4
+run /bin/kmount /root /dev/mapper/root ext4
 
-exec /sbin/switchroot /root /etc/boot/start
+exec /bin/switchroot /root /base/etc/boot/start

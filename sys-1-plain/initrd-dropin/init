@@ -1,14 +1,14 @@
-#!/sbin/msh
+#!/bin/msh
 
-onexit /fail
+onexit /bin/reboot
 
-/sbin/kmount -vc /dev
+run /bin/kmount -vc /dev
 reopen /dev/console
-/sbin/kmount -vc /sys
-/sbin/kmount -vc /proc
+run /bin/kmount -vc /sys
+run /bin/kmount -vc /proc
 
-/sbin/devinit
+run /bin/devinit /etc
 
-/sbin/kmount /root /dev/mapper/root ext4
+run /bin/kmount /root /dev/mapper/root ext4
 
-exec /sbin/switchroot /root /etc/boot/start
+exec /bin/switchroot /root /base/etc/boot/start

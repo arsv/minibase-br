@@ -1,5 +1,0 @@
-#!/sbin/msh
-
-/usr/bin/xrdb -retain /etc/X11/xdefaults
-
-exec /usr/bin/fluxbox

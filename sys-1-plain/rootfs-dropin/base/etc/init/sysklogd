@@ -1,0 +1,5 @@
+#!/base/bin/msh
+
+mkdir /var/log
+
+exec /base/sys/sysklogd

@@ -1,0 +1,5 @@
+#!/base/bin/msh
+
+setenv PATH /base/bin:/bin:/usr/bin
+
+exec /base/sys/rootsh ttyS1 /base/bin/cmd

@@ -1,0 +1,9 @@
+#!/base/bin/msh
+
+close 3
+
+cd /
+
+setenv PATH /usr/bin:/bin:/base/bin
+
+exec /base/bin/cmd

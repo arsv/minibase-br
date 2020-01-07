@@ -1,0 +1,3 @@
+#!/base/bin/msh
+
+invoke /base/bin/modprobe -q

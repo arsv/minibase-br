@@ -1,0 +1,9 @@
+#!/base/bin/msh
+
+close 3
+
+cd /
+
+setenv PATH "/sbin"
+
+exec /base/sys/ctrlvt

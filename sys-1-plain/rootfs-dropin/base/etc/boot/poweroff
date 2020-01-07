@@ -1,0 +1,3 @@
+#!/base/bin/msh
+
+exec /base/sys/reboot -p

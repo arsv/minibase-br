@@ -1,0 +1,24 @@
+#!/base/bin/msh
+
+stdtwo /dev/ttyS0
+
+umask 0000
+mkdir /tmp/.X11-unix 01777 0:0
+umask 0002
+
+setgid 1
+setuid 1
+
+setenv USER user
+setenv HOME /home
+setenv PATH /usr/bin:/bin:/base/bin
+setenv SHELL /base/bin/cmd
+setenv XDG_RUNTIME_DIR /tmp/user
+setenv WESTON_TTY_FD 0
+setenv WESTON_LAUNCHER_SOCK 3
+
+cd /home
+
+waitfor /dev/dri/card0
+
+exec /base/sys/xorgvt

@@ -1,15 +1,15 @@
-#!/sbin/msh
+#!/bin/msh
 
-onexit /sbin/reboot
+onexit /bin/reboot
 
-/sbin/kmount -vc /dev
+run /bin/kmount -vc /dev
 reopen /dev/console
 
-/sbin/kmount -vc /sys
-/sbin/kmount -vc /proc
+run /bin/kmount -vc /sys
+run /bin/kmount -vc /proc
 
-setenv PATH /sbin:/bin
+setenv PATH /bin
 
-/sbin/cmd
+run /bin/cmd
 
-exec /sbin/reboot -p
+exec /bin/reboot -p

@@ -3,16 +3,20 @@
 set -e
 
 rm -fr initrd
-mkdir -p initrd/sbin
+mkdir -p initrd/bin
+
+mb=../minibase/out/bin
+ms=../minibase/out/sys
+
+cp -t initrd/bin $mb/cmd
+cp -t initrd/bin $mb/msh
+cp -t initrd/bin $mb/list
+cp -t initrd/bin $mb/pstree
+cp -t initrd/bin $mb/pslist
+cp -t initrd/bin $mb/kmount
+cp -t initrd/bin $ms/reboot
 
 cp -at initrd/ initrd-dropin/*
-cp -at initrd/sbin/ ../minibase/out/sbin/*
-
-mv -t initrd/sbin/ initrd/sbin/system/reboot
-rm -fr initrd/sbin/system
-rm -fr initrd/sbin/service
-rm -f initrd/sbin/wifi
-rm -f initrd/sbin/*ctl
 
 kver=4.12.10
 kmod=lib/modules/$kver
@@ -27,6 +31,6 @@ cp -at $mdst $msrc/block
 cp -at $mdst $msrc/ata
 cp -at $mdst $msrc/usb
 
-../minibase/out/sbin/depmod initrd/lib/modules/$kver
+../minibase/out/bin/depmod initrd/lib/modules/$kver
 
 (cd initrd && find . | cpio -oH newc) | gzip -c > initrd.img

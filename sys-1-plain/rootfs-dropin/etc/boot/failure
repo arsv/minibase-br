@@ -1,5 +1,0 @@
-#!/sbin/msh
-
-echo "Startup script failure, halting the system"
-
-/sbin/system/reboot -h

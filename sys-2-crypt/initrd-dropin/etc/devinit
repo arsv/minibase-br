@@ -1,3 +1,6 @@
-#!/sbin/msh
+#!/bin/msh
 
-/sbin/findblk mbr:11223344 1:boot 2:root
+mkdir /dev/mapper
+run /bin/findblk mbr:11223344 1:boot 2:root
+waitfor /dev/mapper/control
+run /bin/passblk /etc/keys.bin root
